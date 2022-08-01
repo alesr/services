@@ -1,135 +1,82 @@
 package users
 
 import (
-	"fmt"
 	"time"
-	"unicode"
+
+	"github.com/alesr/services/pkg/validate"
 )
 
-const birthdateFormat string = "2006-01-02"
+const (
+	// Enumerate available roles
 
-type (
-	// User represents a user domain model
-	User struct {
-		ID        string
-		Firstname string
-		Lastname  string
-		Username  string
-		Birthdate string
-		Email     string
-		Role      role
-		CreatedAt time.Time
-	}
-
-	// CreateUserInput represents the input data for creating a user
-	CreateUserInput struct {
-		Firstname       string
-		Lastname        string
-		Username        string
-		Birthdate       string
-		Email           string
-		Password        string
-		ConfirmPassword string
-		Role            role
-	}
+	RoleAdmin role = iota + 1
+	RoleUser
 )
-
-func (in *CreateUserInput) validate() error {
-	if err := validateName(in.Firstname, 3, 20); err != nil {
-		return fmt.Errorf("could not validate first name: %w", err)
-	}
-
-	if err := validateName(in.Lastname, 3, 20); err != nil {
-		return fmt.Errorf("could not validate last name: %w", err)
-	}
-
-	if err := validateName(in.Username, 3, 20); err != nil {
-		return fmt.Errorf("could not validate username: %w", err)
-	}
-
-	if in.Birthdate == "" {
-		return ErrBirthdateRequired
-	}
-
-	if _, err := time.Parse(birthdateFormat, in.Birthdate); err != nil {
-		return ErrInvalidBirthdate
-	}
-
-	if in.Email == "" {
-		return ErrEmailRequired
-	}
-
-	if len(in.Email) > 255 {
-		return ErrEmailTooLong
-	}
-
-	if in.Password == "" {
-		return ErrPasswordRequired
-	}
-
-	if len(in.Password) < 6 {
-		return ErrPasswordTooShort
-	}
-
-	if len(in.Password) > 128 {
-		return ErrPasswordTooLong
-	}
-
-	if in.Password != in.ConfirmPassword {
-		return ErrPasswordMismatch
-	}
-
-	if in.Password != in.ConfirmPassword {
-		return ErrPasswordMismatch
-	}
-	return nil
-}
 
 type AuthUserInput struct {
 	Email    string
 	Password string
 }
 
-func (in *AuthUserInput) validate() error {
-	if in.Email == "" {
-		return ErrEmailRequired
-	}
+type role uint8
 
-	if len(in.Email) > 255 {
-		return ErrEmailTooLong
-	}
-
-	if in.Password == "" {
-		return ErrPasswordRequired
-	}
-
-	if len(in.Password) < 6 {
-		return ErrPasswordTooShort
-	}
-
-	if len(in.Password) > 128 {
-		return ErrPasswordTooLong
+func (r role) validate() error {
+	if r != RoleAdmin && r != RoleUser {
+		return errRoleInvalid
 	}
 	return nil
 }
 
-func validateName(name string, minLen, maxLen int) error {
-	if name == "" {
-		return ErrNameRequired
+// User represents a user domain model
+type User struct {
+	ID        string
+	Fullname  string
+	Username  string
+	Birthdate string
+	Email     string
+	Role      role
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// CreateUserInput represents the input data for creating a user
+type CreateUserInput struct {
+	Fullname        string
+	Username        string
+	Birthdate       string
+	Email           string
+	Password        string
+	ConfirmPassword string
+	Role            role
+}
+
+func (in *CreateUserInput) validate() error {
+	if err := validate.Fullname(in.Fullname); err != nil {
+		return newE(err.Error())
 	}
 
-	if len(name) < minLen {
-		return ErrNameTooShort
+	if err := validate.Fullname(in.Username); err != nil {
+		return newE(err.Error())
 	}
 
-	if len(name) > maxLen {
-		return ErrNameTooLong
+	if err := validate.Birthdate(in.Birthdate); err != nil {
+		return newE(err.Error())
 	}
 
-	for _, char := range name {
-		if !unicode.IsLetter(char) && !unicode.IsNumber(char) {
-			return ErrNameInvalid
-		}
+	if err := validate.Email(in.Email); err != nil {
+		return newE(err.Error())
+	}
+
+	if err := validate.Password(in.Password); err != nil {
+		return newE(err.Error())
+	}
+
+	if in.Password != in.ConfirmPassword {
+		return errPasswordMissmatch
+	}
+
+	if err := in.Role.validate(); err != nil {
+		return newE(err.Error())
 	}
 	return nil
 }

@@ -13,16 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const (
-	// Enumerate roles
-
-	RoleAdmin role = iota + 1
-	RoleUser
-)
-
 type (
-	role uint8
-
 	AuthData struct {
 		ID, Username, Role string
 	}
@@ -41,32 +32,31 @@ func New(jwtSigningKey string, repo repository.Repository) *Service {
 }
 
 // Create creates a new user and returns the created user
-func (s *Service) Create(ctx context.Context, input CreateUserInput) (*User, error) {
-	if err := input.validate(); err != nil {
+func (s *Service) Create(ctx context.Context, in CreateUserInput) (*User, error) {
+	if err := in.validate(); err != nil {
 		return nil, fmt.Errorf("could not validate create user input: %w", err)
 	}
 
-	exists, err := s.repo.Exists(ctx, input.Username, input.Email)
+	exists, err := s.repo.Exists(ctx, in.Username, in.Email)
 	if err != nil {
 		return nil, fmt.Errorf("could not check if user exists: %s", err)
 	}
 
 	if exists {
-		return nil, fmt.Errorf("user already exists")
+		return nil, errAlreadyExists
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("could not hash password: %s", err)
 	}
 
 	insertedUser, err := s.repo.Insert(ctx, &repository.User{
 		ID:        uuid.NewString(),
-		Firstname: input.Firstname,
-		Lastname:  input.Lastname,
-		Username:  input.Username,
-		Birthdate: input.Birthdate,
-		Email:     input.Email,
+		Fullname:  in.Fullname,
+		Username:  in.Username,
+		Birthdate: in.Birthdate,
+		Email:     in.Email,
 		Hash:      string(hash),
 		CreatedAt: time.Now(),
 	})
@@ -84,13 +74,17 @@ func (s *Service) Create(ctx context.Context, input CreateUserInput) (*User, err
 
 // FetchByID fetches a user by id and returns the user
 func (s *Service) FetchByID(ctx context.Context, id string) (*User, error) {
+	if id == "" {
+		return nil, errIDEmpty
+	}
+
 	storageUser, err := s.repo.SelectByID(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("could not select user by id: %s", err)
 	}
 
 	if storageUser == nil {
-		return nil, ErrUserNotFound
+		return nil, errNotFound
 	}
 
 	user, err := newUserFromRepository(storageUser)
@@ -100,35 +94,16 @@ func (s *Service) FetchByID(ctx context.Context, id string) (*User, error) {
 	return user, nil
 }
 
-// AuthUser authenticates a user and returns the user token
-func (s *Service) Auth(ctx context.Context, input AuthUserInput) (string, error) {
-	if err := input.validate(); err != nil {
-		return "", fmt.Errorf("could not validate auth user input: %w", err)
+// GenerateToken generates a JWT token for the user
+func (s *Service) GenerateToken(ctx context.Context, email, password string) (string, error) {
+	if email == "" {
+		return "", errEmailEmpty
 	}
 
-	storageUser, err := s.repo.SelectByEmail(ctx, input.Email)
-	if err != nil {
-		return "", fmt.Errorf("could not select user by email: %s", err)
+	if password == "" {
+		return "", errPasswordEmpty
 	}
 
-	if storageUser == nil {
-		return "", ErrUserNotFound
-	}
-
-	// Check if password is correct
-	if err := bcrypt.CompareHashAndPassword([]byte(storageUser.Hash), []byte(input.Password)); err != nil {
-		return "", ErrPasswordInvalid
-	}
-
-	// Generate JWT
-	token, err := s.generateJWT(storageUser.ID, RoleUser)
-	if err != nil {
-		return "", fmt.Errorf("could not generate JWT: %s", err)
-	}
-	return token, nil
-}
-
-func (s *Service) AccessToken(ctx context.Context, email, password string) (string, error) {
 	// Fetch user by username
 	storageUser, err := s.repo.SelectByEmail(ctx, email)
 	if err != nil {
@@ -137,12 +112,12 @@ func (s *Service) AccessToken(ctx context.Context, email, password string) (stri
 
 	// Check if user exists
 	if storageUser == nil {
-		return "", ErrUserNotFound
+		return "", errNotFound
 	}
 
 	// Check if password is correct
 	if err := bcrypt.CompareHashAndPassword([]byte(storageUser.Hash), []byte(password)); err != nil {
-		return "", ErrPasswordInvalid
+		return "", errPasswordInvalid
 	}
 
 	// Generate JWT
@@ -153,7 +128,12 @@ func (s *Service) AccessToken(ctx context.Context, email, password string) (stri
 	return token, nil
 }
 
-func (s *Service) Authorize(ctx context.Context, token string) (*AuthData, error) {
+// VerifyToken verifies a JWT token and returns the authentication data
+func (s *Service) VerifyToken(ctx context.Context, token string) (*AuthData, error) {
+	if token == "" {
+		return nil, errTokenEmpty
+	}
+
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -165,7 +145,7 @@ func (s *Service) Authorize(ctx context.Context, token string) (*AuthData, error
 	}
 
 	if !parsedToken.Valid {
-		return nil, errors.New("token is not valid")
+		return nil, errTokenInvalid
 	}
 
 	claims, ok := parsedToken.Claims.(jwt.MapClaims)
@@ -180,7 +160,7 @@ func (s *Service) Authorize(ctx context.Context, token string) (*AuthData, error
 	}
 
 	if exp < float64(time.Now().Unix()) {
-		return nil, ErrTokenExpired
+		return nil, errTokenExpired
 	}
 
 	id, ok := claims["id"].(string)
@@ -194,7 +174,7 @@ func (s *Service) Authorize(ctx context.Context, token string) (*AuthData, error
 	}
 
 	if storageUser == nil {
-		return nil, ErrUserNotFound
+		return nil, errNotFound
 	}
 
 	role, ok := claims["role"].(string)
@@ -210,6 +190,14 @@ func (s *Service) Authorize(ctx context.Context, token string) (*AuthData, error
 }
 
 func (s *Service) generateJWT(userID string, role role) (string, error) {
+	if userID == "" {
+		return "", errIDEmpty
+	}
+
+	if err := role.validate(); err != nil {
+		return "", errRoleInvalid
+	}
+
 	claims := jwt.MapClaims{
 		"id":   userID,
 		"role": string(role),
@@ -238,12 +226,12 @@ func newUserFromRepository(user *repository.User) (*User, error) {
 
 	return &User{
 		ID:        user.ID,
-		Firstname: user.Firstname,
-		Lastname:  user.Lastname,
+		Fullname:  user.Fullname,
 		Username:  user.Username,
 		Birthdate: user.Birthdate,
 		Email:     user.Email,
 		Role:      role,
 		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}, nil
 }
