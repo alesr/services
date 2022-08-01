@@ -1,61 +1,33 @@
 package users
 
-const (
-	// Enumerate service error codes
+type ParsableError interface {
+	Error() string
+}
 
-	ErrCodeBirthdateInvalid = iota + 1
-	ErrCodeBirthdateRequired
-	ErrCodeEmailRequired
-	ErrCodeEmailTooLong
-	ErrCodeNameInvalid
-	ErrCodeNameRequired
-	ErrCodeNameTooLong
-	ErrCodeNameTooShort
-	ErrCodePasswordInvalid
-	ErrCodePasswordMismatch
-	ErrCodePasswordRequired
-	ErrCodePasswordTooLong
-	ErrCodePasswordTooShort
-	ErrCodeTokenExpired
-	ErrCodeUserAlreadyExists
-	ErrCodeUsernameTaken
-	ErrCodeUserNotFound
-)
+type E struct {
+	msg string
+}
+
+func newE(msg string) E {
+	return E{msg: msg}
+}
+
+func (e E) Error() string {
+	return e.msg
+}
 
 var (
 	// Enumerate service errors
 
-	ErrBirthdateRequired      Error = Error{ErrCodeBirthdateRequired, "birth date is required"}
-	ErrEmailRequired          Error = Error{ErrCodeEmailRequired, "email is required"}
-	ErrEmailTooLong           Error = Error{ErrCodeEmailTooLong, "email is too long"}
-	ErrInvalidBirthdate       Error = Error{ErrCodeBirthdateInvalid, "invalid birth date"}
-	ErrNameInvalid            Error = Error{ErrCodeNameInvalid, "name is invalid"}
-	ErrNameRequired           Error = Error{ErrCodeNameRequired, "name is required"}
-	ErrNameTooLong            Error = Error{ErrCodeNameTooLong, "name is too long"}
-	ErrNameTooShort           Error = Error{ErrCodeNameTooShort, "name is too short"}
-	ErrPasswordInvalid        Error = Error{ErrCodePasswordInvalid, "password is invalid"}
-	ErrPasswordMismatch       Error = Error{ErrCodePasswordMismatch, "password and confirm password do not match"}
-	ErrPasswordRequired       Error = Error{ErrCodePasswordRequired, "password is required"}
-	ErrPasswordTooLong        Error = Error{ErrCodePasswordTooLong, "password is too long"}
-	ErrPasswordTooShort       Error = Error{ErrCodePasswordTooShort, "password is too short"}
-	ErrTokenExpired           Error = Error{ErrCodeTokenExpired, "token expired"}
-	ErrUserAlreadyExistsError Error = Error{ErrCodeUserAlreadyExists, "user already exists"}
-	ErrUsernameTaken          Error = Error{ErrCodeUsernameTaken, "username is already taken"}
-	ErrUserNotFound           Error = Error{ErrCodeUserNotFound, "user not found"}
+	errAlreadyExists     = newE("user already exists")
+	errEmailEmpty        = newE("user email is empty")
+	errIDEmpty           = newE("user id is empty")
+	errNotFound          = newE("user not found")
+	errPasswordEmpty     = newE("user password is empty")
+	errPasswordInvalid   = newE("user password is invalid")
+	errPasswordMissmatch = newE("user password missmatch")
+	errRoleInvalid       = newE("user role is invalid")
+	errTokenEmpty        = newE("user token is empty")
+	errTokenExpired      = newE("user token is expired")
+	errTokenInvalid      = newE("user token is invalid")
 )
-
-// Error represents a service error with a code and message
-type Error struct {
-	code    int
-	message string
-}
-
-// Error returns the error message implementing the error interface
-func (e Error) Error() string {
-	return e.message
-}
-
-// Code returns the error code
-func (e *Error) Code() int {
-	return e.code
-}
