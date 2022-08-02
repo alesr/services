@@ -22,6 +22,7 @@ var (
 	errAlreadyExists     = newE("user already exists")
 	errEmailEmpty        = newE("user email is empty")
 	errIDEmpty           = newE("user id is empty")
+	errIDInvalid         = newE("user id is invalid")
 	errNotFound          = newE("user not found")
 	errPasswordEmpty     = newE("user password is empty")
 	errPasswordInvalid   = newE("user password is invalid")
