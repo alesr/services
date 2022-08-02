@@ -127,7 +127,7 @@ func TestCreateUserInput_validate(t *testing.T) {
 				Email:           "joedoe@mail.com",
 				Password:        "1234%6abc",
 				ConfirmPassword: "1234%6abc",
-				Role:            role(0),
+				Role:            role("invalid"),
 			},
 			expectedError: true,
 		},

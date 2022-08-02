@@ -9,8 +9,8 @@ import (
 const (
 	// Enumerate available roles
 
-	RoleAdmin role = iota + 1
-	RoleUser
+	RoleAdmin role = "admin"
+	RoleUser  role = "user"
 )
 
 type AuthUserInput struct {
@@ -18,7 +18,11 @@ type AuthUserInput struct {
 	Password string
 }
 
-type role uint8
+type role string
+
+// func (r role) String() string {
+// 	return string(r)
+// }
 
 func (r role) validate() error {
 	if r != RoleAdmin && r != RoleUser {

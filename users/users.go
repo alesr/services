@@ -58,7 +58,9 @@ func (s *Service) Create(ctx context.Context, in CreateUserInput) (*User, error)
 		Birthdate: in.Birthdate,
 		Email:     in.Email,
 		Hash:      string(hash),
+		Role:      string(in.Role),
 		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("could not insert user: %s", err)
@@ -66,7 +68,7 @@ func (s *Service) Create(ctx context.Context, in CreateUserInput) (*User, error)
 
 	createdUser, err := newUserFromRepository(insertedUser)
 	if err != nil {
-		return nil, fmt.Errorf("could not create user from repository: %s", err)
+		return nil, fmt.Errorf("could not parse storage user to domain model: %s", err)
 	}
 
 	return createdUser, nil
@@ -76,6 +78,11 @@ func (s *Service) Create(ctx context.Context, in CreateUserInput) (*User, error)
 func (s *Service) FetchByID(ctx context.Context, id string) (*User, error) {
 	if id == "" {
 		return nil, errIDEmpty
+	}
+
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return nil, errIDInvalid
 	}
 
 	storageUser, err := s.repo.SelectByID(ctx, id)
@@ -89,7 +96,7 @@ func (s *Service) FetchByID(ctx context.Context, id string) (*User, error) {
 
 	user, err := newUserFromRepository(storageUser)
 	if err != nil {
-		return nil, fmt.Errorf("could not create user from repository: %s", err)
+		return nil, fmt.Errorf("could not parse storage user to domain model: %s", err)
 	}
 	return user, nil
 }
