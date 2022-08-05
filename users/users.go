@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alesr/services/users/internal/repository"
+	"github.com/alesr/stdservices/users/internal/repository"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
