@@ -5,7 +5,6 @@ on:
       - master
 
 jobs:
-
   lintwer:
     name: linter
     runs-on: ubuntu-latest
@@ -19,7 +18,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    name: Update coverage badge
+    name: tests
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -38,11 +37,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-
-      - name: Run Test
-        run: |
-          go test -v ./... -covermode=count -coverprofile=coverage.out
-          go tool cover -func=coverage.out -o=coverage.out
       
       - name: Unit tests
         run: |
