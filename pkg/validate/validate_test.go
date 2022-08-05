@@ -3,6 +3,7 @@ package validate
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -178,6 +179,39 @@ func TestPassword(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			actual := Password(tc.given)
+			assert.Equal(t, actual, tc.expected)
+		})
+	}
+}
+
+func TestID(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		given    string
+		expected error
+	}{
+		{
+			name:     "valid",
+			given:    uuid.New().String(),
+			expected: nil,
+		},
+		{
+			name:     "empty",
+			given:    "",
+			expected: errIDRequired,
+		},
+		{
+			name:     "invalid format",
+			given:    "123",
+			expected: errIDFormat,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := ID(tc.given)
 			assert.Equal(t, actual, tc.expected)
 		})
 	}

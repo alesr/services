@@ -4,6 +4,8 @@ import (
 	"net/mail"
 	"time"
 	"unicode"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -79,6 +81,17 @@ func Password(password string) error {
 
 	if !hasNumber || !hasLetter || !hasSpecial {
 		return errPasswordFormat
+	}
+	return nil
+}
+
+func ID(id string) error {
+	if id == "" {
+		return errIDRequired
+	}
+
+	if _, err := uuid.Parse(id); err != nil {
+		return errIDFormat
 	}
 	return nil
 }
