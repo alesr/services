@@ -46,6 +46,11 @@ func (s *Service) Create(ctx context.Context, in CreateUserInput) (*User, error)
 		return nil, fmt.Errorf("could not validate create user input: %w", err)
 	}
 
+	// Block creation of users with admin role
+	if in.Role == RoleAdmin {
+		return nil, errCannotCreateAdminUser
+	}
+
 	exists, err := s.repo.Exists(ctx, in.Username, in.Email)
 	if err != nil {
 		return nil, fmt.Errorf("could not check if user exists: %s", err)
