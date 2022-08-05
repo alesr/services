@@ -18,13 +18,21 @@ type (
 		ID, Username, Role string
 	}
 
+	repo interface {
+		Exists(ctx context.Context, username, email string) (bool, error)
+		Insert(ctx context.Context, user *repository.User) (*repository.User, error)
+		SelectByID(ctx context.Context, id string) (*repository.User, error)
+		SelectByEmail(ctx context.Context, email string) (*repository.User, error)
+	}
+
 	Service struct {
 		jwtSigningKey string
-		repo          repository.Repository
+		repo          repo
 	}
 )
 
-func New(jwtSigningKey string, repo repository.Repository) *Service {
+// New instantiates a new users service
+func New(jwtSigningKey string, repo repo) *Service {
 	return &Service{
 		jwtSigningKey: jwtSigningKey,
 		repo:          repo,
