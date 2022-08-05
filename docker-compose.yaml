@@ -1,0 +1,15 @@
+version: '3.8'
+
+networks:
+  backend:
+
+services:  
+  db:
+    image: postgres:13.7-alpine3.16
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: user
+      POSTGRES_DB: testdb
+    ports:
+      - "5432:5432"
