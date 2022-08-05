@@ -53,6 +53,9 @@ func TestCreate(t *testing.T) {
 		Role:            RoleUser,
 	}
 
+	givenUserWithAdminRole := givenUser
+	givenUserWithAdminRole.Role = RoleAdmin
+
 	testCases := []struct {
 		name          string
 		givenUser     CreateUserInput
@@ -133,6 +136,13 @@ func TestCreate(t *testing.T) {
 			},
 			expectedUser:  nil,
 			expectedError: fmt.Errorf("could not insert user: some error"),
+		},
+		{
+			name:          "cannot create user with admin role",
+			givenUser:     givenUserWithAdminRole,
+			givenRepoMock: &repositoryMock{},
+			expectedUser:  nil,
+			expectedError: errCannotCreateAdminUser,
 		},
 	}
 
