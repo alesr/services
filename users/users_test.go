@@ -34,7 +34,7 @@ func TestCreate_validation(t *testing.T) {
 		Fullname: "%invalid-name%",
 	}
 
-	svc := Service{}
+	svc := DefaultService{}
 
 	_, err := svc.Create(context.Background(), given)
 	assert.Error(t, err)
@@ -148,7 +148,7 @@ func TestCreate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			svc := Service{
+			svc := DefaultService{
 				repo: tc.givenRepoMock,
 			}
 
@@ -197,7 +197,7 @@ func TestFetchByID(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			svc := Service{
+			svc := DefaultService{
 				repo: tc.givenRepoMock,
 			}
 
@@ -230,7 +230,7 @@ func TestFetchByID_validation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			svc := Service{}
+			svc := DefaultService{}
 
 			_, err := svc.FetchByID(context.Background(), tc.givenID)
 			require.Equal(t, tc.expectedError, err != nil)
@@ -275,7 +275,7 @@ func TestGenerateToken_validation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			svc := Service{}
+			svc := DefaultService{}
 
 			_, err := svc.GenerateToken(context.Background(), tc.givenEmail, tc.givenPassword)
 			require.Equal(t, tc.expectedError, err != nil)
@@ -356,7 +356,7 @@ func TestGenerateToken(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			svc := Service{
+			svc := DefaultService{
 				repo: tc.givenRepoMock,
 			}
 

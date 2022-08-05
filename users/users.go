@@ -15,8 +15,13 @@ import (
 )
 
 type (
-	AuthData struct {
-		ID, Username, Role string
+
+	// Service defines the service interface
+	Service interface {
+		Create(ctx context.Context, in CreateUserInput) (*User, error)
+		FetchByID(ctx context.Context, id string) (*User, error)
+		GenerateToken(ctx context.Context, email, password string) (string, error)
+		VerifyToken(ctx context.Context, token string) (*User, error)
 	}
 
 	repo interface {
@@ -26,22 +31,22 @@ type (
 		SelectByEmail(ctx context.Context, email string) (*repository.User, error)
 	}
 
-	Service struct {
+	DefaultService struct {
 		jwtSigningKey string
 		repo          repo
 	}
 )
 
 // New instantiates a new users service
-func New(jwtSigningKey string, repo repo) *Service {
-	return &Service{
+func New(jwtSigningKey string, repo repo) *DefaultService {
+	return &DefaultService{
 		jwtSigningKey: jwtSigningKey,
 		repo:          repo,
 	}
 }
 
 // Create creates a new user and returns the created user
-func (s *Service) Create(ctx context.Context, in CreateUserInput) (*User, error) {
+func (s *DefaultService) Create(ctx context.Context, in CreateUserInput) (*User, error) {
 	if err := in.validate(); err != nil {
 		return nil, fmt.Errorf("could not validate create user input: %w", err)
 	}
@@ -89,7 +94,7 @@ func (s *Service) Create(ctx context.Context, in CreateUserInput) (*User, error)
 }
 
 // FetchByID fetches a user by id and returns the user
-func (s *Service) FetchByID(ctx context.Context, id string) (*User, error) {
+func (s *DefaultService) FetchByID(ctx context.Context, id string) (*User, error) {
 	if err := validate.ID(id); err != nil {
 		return nil, fmt.Errorf("could not validate id: %w", err)
 	}
@@ -111,7 +116,7 @@ func (s *Service) FetchByID(ctx context.Context, id string) (*User, error) {
 }
 
 // GenerateToken generates a JWT token for the user
-func (s *Service) GenerateToken(ctx context.Context, email, password string) (string, error) {
+func (s *DefaultService) GenerateToken(ctx context.Context, email, password string) (string, error) {
 	if err := validate.Email(email); err != nil {
 		return "", fmt.Errorf("could not validate email: %s", err)
 	}
@@ -145,7 +150,7 @@ func (s *Service) GenerateToken(ctx context.Context, email, password string) (st
 }
 
 // VerifyToken verifies a JWT token and returns the authentication data
-func (s *Service) VerifyToken(ctx context.Context, token string) (*AuthData, error) {
+func (s *DefaultService) VerifyToken(ctx context.Context, token string) (*VerifyTokenResponse, error) {
 	if token == "" {
 		return nil, errTokenEmpty
 	}
@@ -198,14 +203,14 @@ func (s *Service) VerifyToken(ctx context.Context, token string) (*AuthData, err
 		return nil, errors.New("could not parse token role")
 	}
 
-	return &AuthData{
+	return &VerifyTokenResponse{
 		ID:       storageUser.ID,
 		Username: storageUser.Username,
 		Role:     role,
 	}, nil
 }
 
-func (s *Service) generateJWT(userID string, role role) (string, error) {
+func (s *DefaultService) generateJWT(userID string, role role) (string, error) {
 	if err := validate.ID(userID); err != nil {
 		return "", fmt.Errorf("could not validate id: %w", err)
 	}
