@@ -11,9 +11,9 @@ import (
 const (
 	// Enumerate postgresql query strings
 
-	insertQuery        string = "INSERT INTO users (id,fullname,username,birthdate,email,hash,role,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9);"
-	selectByIDQuery    string = "SELECT id,fullname,username,birthdate,email,hash,role,created_at,updated_at FROM users WHERE id = $1;"
-	selectByEmailQuery string = "SELECT id,fullname,username,birthdate,email,hash,role,created_at,updated_at FROM users WHERE email = $1;"
+	insertQuery        string = "INSERT INTO users (id,fullname,username,birthdate,email,password_hash,role,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9);"
+	selectByIDQuery    string = "SELECT id,fullname,username,birthdate,email,password_hash,role,created_at,updated_at FROM users WHERE id = $1;"
+	selectByEmailQuery string = "SELECT id,fullname,username,birthdate,email,password_hash,role,created_at,updated_at FROM users WHERE email = $1;"
 	existsQuery        string = "SELECT COUNT(*) FROM users WHERE username = $1 OR email = $2;"
 )
 
@@ -37,7 +37,7 @@ func (p *Postgres) Insert(ctx context.Context, u *User) (*User, error) {
 
 	result, err := insertStmt.ExecContext(
 		ctx, u.ID, u.Fullname, u.Username, u.Birthdate,
-		u.Email, u.Hash, u.Role, u.CreatedAt, u.UpdatedAt,
+		u.Email, u.PasswordHash, u.Role, u.CreatedAt, u.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("could not insert user: %s", err)
@@ -84,7 +84,7 @@ func (p *Postgres) selectUser(ctx context.Context, query, arg string) (*User, er
 	var u User
 	if err := p.QueryRowContext(ctx, query, arg).Scan(
 		&u.ID, &u.Fullname, &u.Username, &u.Birthdate,
-		&u.Email, &u.Hash, u.Role, &u.CreatedAt, &u.UpdatedAt,
+		&u.Email, &u.PasswordHash, u.Role, &u.CreatedAt, &u.UpdatedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
