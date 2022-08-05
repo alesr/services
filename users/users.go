@@ -132,7 +132,7 @@ func (s *Service) GenerateToken(ctx context.Context, email, password string) (st
 	}
 
 	// Generate JWT
-	token, err := s.generateJWT(storageUser.ID, RoleUser)
+	token, err := s.generateJWT(storageUser.ID, role(storageUser.Role))
 	if err != nil {
 		return "", fmt.Errorf("could not generate jwt: %s", err)
 	}

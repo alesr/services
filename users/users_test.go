@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/alesr/stdservices/users/internal/repository"
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func TestNew(t *testing.T) {
@@ -228,41 +228,133 @@ func TestFetchByID_validation(t *testing.T) {
 	}
 }
 
-func TestGenerateJWT(t *testing.T) {
+func TestGenerateToken_validation(t *testing.T) {
 	t.Parallel()
 
-	givenUserID := uuid.New().String()
-	givenUserRole := RoleAdmin
-
-	svc := Service{
-		jwtSigningKey: "secret",
+	testCases := []struct {
+		name          string
+		givenEmail    string
+		givenPassword string
+		expectedError bool
+	}{
+		{
+			name:          "empty email",
+			givenEmail:    "",
+			givenPassword: "password%&123",
+			expectedError: true,
+		},
+		{
+			name:          "invalid email format",
+			givenEmail:    "invalid-email",
+			givenPassword: "password%&123",
+			expectedError: true,
+		},
+		{
+			name:          "empty password",
+			givenEmail:    "joedoe@mail.com",
+			givenPassword: "",
+			expectedError: true,
+		},
+		{
+			name:          "empty password format",
+			givenEmail:    "joedoe@mail.com",
+			givenPassword: "123",
+			expectedError: true,
+		},
 	}
 
-	actual, err := svc.generateJWT(givenUserID, givenUserRole)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := Service{}
+
+			_, err := svc.GenerateToken(context.Background(), tc.givenEmail, tc.givenPassword)
+			require.Equal(t, tc.expectedError, err != nil)
+		})
+	}
+}
+
+func TestGenerateToken(t *testing.T) {
+	t.Parallel()
+
+	password := "password%&123"
+
+	givenHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	require.NoError(t, err)
 
-	// Verify the token
-	token, err := jwt.Parse(actual, func(token *jwt.Token) (interface{}, error) {
-		return []byte(svc.jwtSigningKey), nil
-	})
-	require.NoError(t, err)
+	testCases := []struct {
+		name          string
+		givenPassword string
+		givenRepoMock *repositoryMock
+		expectedToken bool
+		expectedError bool
+	}{
+		{
+			name:          "user not found",
+			givenPassword: password,
+			givenRepoMock: &repositoryMock{
+				selectByEmailFunc: func(ctx context.Context, email string) (*repository.User, error) {
+					return nil, nil
+				},
+			},
+			expectedToken: false,
+			expectedError: true,
+		},
+		{
+			name:          "select user error",
+			givenPassword: password,
+			givenRepoMock: &repositoryMock{
+				selectByEmailFunc: func(ctx context.Context, email string) (*repository.User, error) {
+					return nil, errors.New("some error")
+				},
+			},
+			expectedToken: false,
+			expectedError: true,
+		},
+		{
+			name:          "password match",
+			givenPassword: password,
+			givenRepoMock: &repositoryMock{
+				selectByEmailFunc: func(ctx context.Context, email string) (*repository.User, error) {
+					return &repository.User{
+						ID:    uuid.New().String(),
+						Role:  string(RoleUser),
+						Email: email,
+						Hash:  string(givenHash),
+					}, nil
+				},
+			},
+			expectedToken: true,
+			expectedError: false,
+		},
+		{
+			name:          "password not match",
+			givenPassword: "somepassword&#%123",
+			givenRepoMock: &repositoryMock{
+				selectByEmailFunc: func(ctx context.Context, email string) (*repository.User, error) {
+					return &repository.User{
+						ID:    uuid.New().String(),
+						Role:  string(RoleUser),
+						Email: email,
+						Hash:  string(givenHash),
+					}, nil
+				},
+			},
+			expectedToken: false,
+			expectedError: true,
+		},
+	}
 
-	// Verify the claims
-	claims := token.Claims.(jwt.MapClaims)
-	assert.Equal(t, givenUserID, claims["id"])
-	assert.Equal(t, string(givenUserRole), claims["role"])
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := Service{
+				repo: tc.givenRepoMock,
+			}
 
-	// Verify the expiration
-	exp, ok := claims["exp"].(float64)
-	require.True(t, ok)
-
-	assert.True(t, exp > float64(time.Now().Unix()))
-
-	// Verify the signature
-	alg, ok := token.Method.(*jwt.SigningMethodHMAC)
-	require.True(t, ok)
-
-	assert.Equal(t, jwt.SigningMethodHS256.Alg(), alg.Alg())
+			token, err := svc.GenerateToken(context.Background(), "joedoe@mail.com", tc.givenPassword)
+			assert.Equal(t, tc.expectedError, err != nil)
+			assert.Equal(t, tc.expectedToken, token != "")
+		})
+	}
 }
 
 func TestNewUserFromRepository(t *testing.T) {
