@@ -13,16 +13,15 @@ const (
 	RoleUser  role = "user"
 )
 
-type AuthUserInput struct {
-	Email    string
-	Password string
+type VerifyTokenResponse struct {
+	ID, Username, Role string
 }
 
 type role string
 
-// func (r role) String() string {
-// 	return string(r)
-// }
+func (r role) String() string {
+	return string(r)
+}
 
 func (r role) validate() error {
 	if r != RoleAdmin && r != RoleUser {
