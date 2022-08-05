@@ -204,17 +204,17 @@ func TestFetchByID_validation(t *testing.T) {
 	testCases := []struct {
 		name          string
 		givenID       string
-		expectedError error
+		expectedError bool
 	}{
 		{
 			name:          "emty id",
 			givenID:       "",
-			expectedError: errIDEmpty,
+			expectedError: true,
 		},
 		{
 			name:          "invalid id",
 			givenID:       "%invalid-id%",
-			expectedError: errIDInvalid,
+			expectedError: true,
 		},
 	}
 
@@ -223,7 +223,7 @@ func TestFetchByID_validation(t *testing.T) {
 			svc := Service{}
 
 			_, err := svc.FetchByID(context.Background(), tc.givenID)
-			require.Equal(t, tc.expectedError, err)
+			require.Equal(t, tc.expectedError, err != nil)
 		})
 	}
 }
@@ -231,7 +231,7 @@ func TestFetchByID_validation(t *testing.T) {
 func TestGenerateJWT(t *testing.T) {
 	t.Parallel()
 
-	givenUserID := "123"
+	givenUserID := uuid.New().String()
 	givenUserRole := RoleAdmin
 
 	svc := Service{

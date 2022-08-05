@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alesr/stdservices/pkg/validate"
 	"github.com/alesr/stdservices/users/internal/repository"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -84,13 +85,8 @@ func (s *Service) Create(ctx context.Context, in CreateUserInput) (*User, error)
 
 // FetchByID fetches a user by id and returns the user
 func (s *Service) FetchByID(ctx context.Context, id string) (*User, error) {
-	if id == "" {
-		return nil, errIDEmpty
-	}
-
-	_, err := uuid.Parse(id)
-	if err != nil {
-		return nil, errIDInvalid
+	if err := validate.ID(id); err != nil {
+		return nil, fmt.Errorf("could not validate id: %w", err)
 	}
 
 	storageUser, err := s.repo.SelectByID(ctx, id)
@@ -111,12 +107,12 @@ func (s *Service) FetchByID(ctx context.Context, id string) (*User, error) {
 
 // GenerateToken generates a JWT token for the user
 func (s *Service) GenerateToken(ctx context.Context, email, password string) (string, error) {
-	if email == "" {
-		return "", errEmailEmpty
+	if err := validate.Email(email); err != nil {
+		return "", fmt.Errorf("could not validate email: %s", err)
 	}
 
-	if password == "" {
-		return "", errPasswordEmpty
+	if err := validate.Password(password); err != nil {
+		return "", fmt.Errorf("could not validate password: %s", err)
 	}
 
 	// Fetch user by username
@@ -205,8 +201,8 @@ func (s *Service) VerifyToken(ctx context.Context, token string) (*AuthData, err
 }
 
 func (s *Service) generateJWT(userID string, role role) (string, error) {
-	if userID == "" {
-		return "", errIDEmpty
+	if err := validate.ID(userID); err != nil {
+		return "", fmt.Errorf("could not validate id: %w", err)
 	}
 
 	if err := role.validate(); err != nil {
