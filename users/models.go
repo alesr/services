@@ -76,7 +76,7 @@ func (in *CreateUserInput) validate() error {
 	}
 
 	if in.Password != in.ConfirmPassword {
-		return errPasswordMissmatch
+		return errPasswordMismatch
 	}
 
 	if err := in.Role.validate(); err != nil {

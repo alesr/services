@@ -7,7 +7,7 @@ import (
 	"github.com/alesr/stdservices/users/internal/repository"
 )
 
-var _ repository.Repository = (*repositoryMock)(nil)
+var _ repo = (*repositoryMock)(nil)
 
 type repositoryMock struct {
 	existsFunc        func(ctx context.Context, username, email string) (bool, error)
