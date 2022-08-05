@@ -1,4 +1,4 @@
-module github.com/alesr/services
+module github.com/alesr/stdservices
 
 go 1.18
 

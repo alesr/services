@@ -3,7 +3,7 @@ package users
 import (
 	"time"
 
-	"github.com/alesr/services/pkg/validate"
+	"github.com/alesr/stdservices/pkg/validate"
 )
 
 const (
