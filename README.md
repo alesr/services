@@ -5,6 +5,17 @@
 
 This is a collection of small services that I use in my side projects.
 
+```bash
+------------------------------------------------------------------------
+stdservices
+------------------------------------------------------------------------
+db-down                        remove the test database container and its volumes
+db                             spins up the test database
+migrate                        executes the migrations towards the test database
+psql                           executes a psql command to connect to the test database
+test-unit                      run unit tests
+```
+---
 ## users
 
 The user service implements a set of CRUD operations for users. It is used in conjunction with JWT authentication and includes
