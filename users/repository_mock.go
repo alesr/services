@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/alesr/services/users/internal/repository"
+	"github.com/alesr/stdservices/users/internal/repository"
 )
 
 var _ repository.Repository = (*repositoryMock)(nil)
