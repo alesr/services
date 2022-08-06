@@ -11,9 +11,12 @@ stdservices
 ------------------------------------------------------------------------
 db-down                        remove the test database container and its volumes
 db                             spins up the test database
+lint                           run go format, vet and lint code
 migrate                        executes the migrations towards the test database
 psql                           executes a psql command to connect to the test database
+test-it                        run integration tests
 test-unit                      run unit tests
+test                           Run unit and integration tests
 ```
 ---
 ## users
