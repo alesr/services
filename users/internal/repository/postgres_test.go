@@ -13,6 +13,10 @@ import (
 )
 
 func TestIntegrationInsert(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	dbConn := setupDB(t)
 	defer teardownDB(t, dbConn)
 
@@ -37,6 +41,10 @@ func TestIntegrationInsert(t *testing.T) {
 }
 
 func TestIntegrationExists(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	dbConn := setupDB(t)
 	defer teardownDB(t, dbConn)
 
@@ -73,6 +81,10 @@ func TestIntegrationExists(t *testing.T) {
 }
 
 func TestIntegrationSelectByID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	dbConn := setupDB(t)
 	defer teardownDB(t, dbConn)
 
@@ -109,6 +121,10 @@ func TestIntegrationSelectByID(t *testing.T) {
 }
 
 func TestIntegrationSelectByEmail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
 	dbConn := setupDB(t)
 	defer teardownDB(t, dbConn)
 

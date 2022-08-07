@@ -18,12 +18,12 @@ lint: ## run go format, vet and lint code
 
 .PHONY: test-unit
 test-unit: ## run unit tests
-	@go test -v -race -vet=all -count=1 -timeout 240s ./...
+	@go test -v -short -race -vet=all -count=1 -timeout 240s ./...
 
 .PHONY: test-it
 test-it: ## run integration tests
 	make db
-	@go test -run 'Integration' -v -race -vet=all -count=1 -timeout 240s ./...
+	@go test -run Integration -v -race -vet=all -count=1 -timeout 240s ./...
 	make db-down
 
 .PHONY: test
