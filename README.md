@@ -1,10 +1,24 @@
 # stdservices
-![Coverage](https://img.shields.io/badge/Coverage-71.8%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-72.6%25-brightgreen)
 ![master](https://github.com/alesr/stdservices/actions/workflows/ci.yaml/badge.svg)
 
 
 This is a collection of small services that I use in my side projects.
 
+```bash
+------------------------------------------------------------------------
+stdservices
+------------------------------------------------------------------------
+db-down                        remove the test database container and its volumes
+db                             spins up the test database
+lint                           run go format, vet and lint code
+migrate                        executes the migrations towards the test database
+psql                           executes a psql command to connect to the test database
+test-it                        run integration tests
+test-unit                      run unit tests
+test                           Run unit and integration tests
+```
+---
 ## users
 
 The user service implements a set of CRUD operations for users. It is used in conjunction with JWT authentication and includes
