@@ -11,47 +11,49 @@ import (
 const (
 	// Enumerate postgresql query strings
 
-	insertQuery        string = "INSERT INTO users (id,fullname,username,birthdate,email,hash,role,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9);"
-	selectByIDQuery    string = "SELECT id,fullname,username,birthdate,email,hash,role,created_at,updated_at FROM users WHERE id = $1;"
-	selectByEmailQuery string = "SELECT id,fullname,username,birthdate,email,hash,role,created_at,updated_at FROM users WHERE email = $1;"
-	existsQuery        string = "SELECT COUNT(*) FROM users WHERE username = $1 OR email = $2;"
+	insertQuery string = `INSERT INTO users (id,fullname,username,birthdate,email,password_hash,
+	role,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING 
+	id,fullname,username,birthdate,email,password_hash,role,created_at,updated_at;`
+
+	selectByIDQuery string = `SELECT id,fullname,username,birthdate,email,password_hash,
+	role,created_at,updated_at FROM users WHERE id = $1;`
+
+	selectByEmailQuery string = `SELECT id,fullname,username,birthdate,email,password_hash,
+	role,created_at,updated_at FROM users WHERE email = $1;`
+
+	existsQuery string = "SELECT COUNT(*) FROM users WHERE username = $1 OR email = $2;"
 )
 
-type (
-	// Postgres represents a user repository instance with the given database connection
-	Postgres struct{ *sqlx.DB }
-)
+// Postgres represents a user repository instance with the given database connection
+type Postgres struct{ *sqlx.DB }
 
 // New creates a new user repository instance
 func NewPostgres(dbConn *sqlx.DB) *Postgres {
 	return &Postgres{dbConn}
 }
 
-// Insert inserts a new user into the database and returns the inserted user
 func (p *Postgres) Insert(ctx context.Context, u *User) (*User, error) {
-	insertStmt, err := p.PrepareContext(ctx, insertQuery)
-	if err != nil {
-		return nil, fmt.Errorf("could not prepare insert statement: %w", err)
-	}
-	defer insertStmt.Close()
+	var res User
 
-	result, err := insertStmt.ExecContext(
-		ctx, u.ID, u.Fullname, u.Username, u.Birthdate,
-		u.Email, u.Hash, u.Role, u.CreatedAt, u.UpdatedAt,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("could not insert user: %s", err)
+	if err := p.QueryRowContext(
+		ctx,
+		insertQuery,
+		u.ID,
+		u.Fullname,
+		u.Username,
+		u.Birthdate,
+		u.Email,
+		u.PasswordHash,
+		u.Role,
+		u.CreatedAt,
+		u.UpdatedAt,
+	).Scan(
+		&res.ID, &res.Fullname, &res.Username, &res.Birthdate, &res.Email,
+		&res.PasswordHash, &res.Role, &res.CreatedAt, &res.UpdatedAt,
+	); err != nil {
+		return nil, fmt.Errorf("could not scan inserted user: %s", err)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return nil, fmt.Errorf("could not get rows affected: %s", err)
-	}
-
-	if rowsAffected != 1 {
-		return nil, fmt.Errorf("expected 1 row affected, got %d", rowsAffected)
-	}
-	return u, nil
+	return &res, nil
 }
 
 func (p *Postgres) Exists(ctx context.Context, username, email string) (bool, error) {
@@ -84,7 +86,7 @@ func (p *Postgres) selectUser(ctx context.Context, query, arg string) (*User, er
 	var u User
 	if err := p.QueryRowContext(ctx, query, arg).Scan(
 		&u.ID, &u.Fullname, &u.Username, &u.Birthdate,
-		&u.Email, &u.Hash, u.Role, &u.CreatedAt, &u.UpdatedAt,
+		&u.Email, &u.PasswordHash, &u.Role, &u.CreatedAt, &u.UpdatedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil

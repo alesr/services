@@ -3,9 +3,11 @@ on:
   pull_request:
     branches:
       - master
+  push:
+    branches: [ master ]
 
 jobs:
-  lintwer:
+  linter:
     name: linter
     runs-on: ubuntu-latest
     steps:
@@ -19,14 +21,33 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: tests
+
+    services:
+      postgres:
+        image: postgres:13.7-alpine3.16
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal access token.
-          fetch-depth: 0 # otherwise, there would be errors pushing refs to the destination repository.
-      
-      - name: Setup go
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: run tests db migrations
+        run: make migrate
+
+      - name: setup go
         uses: actions/setup-go@v2
         with:
           go-version: '1.19'
@@ -38,23 +59,23 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       
-      - name: Unit tests
+      - name: unit tests
         run: |
           go test -v -covermode=atomic -coverprofile=coverage.out -race -vet=all -count=1 -timeout 240s ./...
           go tool cover -func=coverage.out -o=coverage.out
 
-      - name: Go Coverage Badge  # Pass the `coverage.out` output to this action
+      - name: go coverage badge  # Pass the `coverage.out` output to this action
         uses: tj-actions/coverage-badge-go@v1.2
         with:
           filename: coverage.out
 
-      - name: Verify Changed files
+      - name: verify changed files
         uses: tj-actions/verify-changed-files@v9.1
         id: verify-changed-files
         with:
           files: README.md
 
-      - name: Commit changes
+      - name: commit changes
         if: steps.verify-changed-files.outputs.files_changed == 'true'
         run: |
           git config --local user.email "action@github.com"
@@ -62,7 +83,7 @@ jobs:
           git add README.md
           git commit -m "chore: Updated coverage badge."
 
-      - name: Push changes
+      - name: push changes
         if: steps.verify-changed-files.outputs.files_changed == 'true'
         uses: ad-m/github-push-action@master
         with:

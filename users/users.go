@@ -71,15 +71,15 @@ func (s *DefaultService) Create(ctx context.Context, in CreateUserInput) (*User,
 	}
 
 	insertedUser, err := s.repo.Insert(ctx, &repository.User{
-		ID:        uuid.NewString(),
-		Fullname:  in.Fullname,
-		Username:  in.Username,
-		Birthdate: in.Birthdate,
-		Email:     in.Email,
-		Hash:      string(hash),
-		Role:      string(in.Role),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:           uuid.NewString(),
+		Fullname:     in.Fullname,
+		Username:     in.Username,
+		Birthdate:    in.Birthdate,
+		Email:        in.Email,
+		PasswordHash: string(hash),
+		Role:         string(in.Role),
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("could not insert user: %s", err)
@@ -137,7 +137,7 @@ func (s *DefaultService) GenerateToken(ctx context.Context, email, password stri
 	}
 
 	// Check if password is correct
-	if err := bcrypt.CompareHashAndPassword([]byte(storageUser.Hash), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(storageUser.PasswordHash), []byte(password)); err != nil {
 		return "", errPasswordInvalid
 	}
 

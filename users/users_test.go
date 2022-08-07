@@ -94,20 +94,20 @@ func TestCreate(t *testing.T) {
 				},
 				insertFunc: func(ctx context.Context, user *repository.User) (*repository.User, error) {
 					assert.NotEmpty(t, user.ID)
-					assert.NotEmpty(t, user.Hash)
+					assert.NotEmpty(t, user.PasswordHash)
 					assert.NotEmpty(t, user.CreatedAt)
 					assert.NotEmpty(t, user.UpdatedAt)
 
 					return &repository.User{
-						ID:        "123",
-						Fullname:  givenUser.Fullname,
-						Username:  givenUser.Username,
-						Birthdate: givenUser.Birthdate,
-						Email:     givenUser.Email,
-						Hash:      givenUser.Password,
-						Role:      string(RoleUser),
-						CreatedAt: time.Time{}.AddDate(2000, 1, 1),
-						UpdatedAt: time.Time{}.AddDate(2000, 2, 2),
+						ID:           "123",
+						Fullname:     givenUser.Fullname,
+						Username:     givenUser.Username,
+						Birthdate:    givenUser.Birthdate,
+						Email:        givenUser.Email,
+						PasswordHash: givenUser.Password,
+						Role:         string(RoleUser),
+						CreatedAt:    time.Time{}.AddDate(2000, 1, 1),
+						UpdatedAt:    time.Time{}.AddDate(2000, 2, 2),
 					}, nil
 				},
 			},
@@ -326,10 +326,10 @@ func TestGenerateToken(t *testing.T) {
 			givenRepoMock: &repositoryMock{
 				selectByEmailFunc: func(ctx context.Context, email string) (*repository.User, error) {
 					return &repository.User{
-						ID:    uuid.New().String(),
-						Role:  string(RoleUser),
-						Email: email,
-						Hash:  string(givenHash),
+						ID:           uuid.New().String(),
+						Role:         string(RoleUser),
+						Email:        email,
+						PasswordHash: string(givenHash),
 					}, nil
 				},
 			},
@@ -342,10 +342,10 @@ func TestGenerateToken(t *testing.T) {
 			givenRepoMock: &repositoryMock{
 				selectByEmailFunc: func(ctx context.Context, email string) (*repository.User, error) {
 					return &repository.User{
-						ID:    uuid.New().String(),
-						Role:  string(RoleUser),
-						Email: email,
-						Hash:  string(givenHash),
+						ID:           uuid.New().String(),
+						Role:         string(RoleUser),
+						Email:        email,
+						PasswordHash: string(givenHash),
 					}, nil
 				},
 			},
@@ -371,15 +371,15 @@ func TestNewUserFromRepository(t *testing.T) {
 	t.Parallel()
 
 	given := repository.User{
-		ID:        "123",
-		Fullname:  "John Doe",
-		Username:  "jdoe",
-		Birthdate: "2000-01-01",
-		Email:     "jdoe@mail.com",
-		Hash:      "password",
-		Role:      "admin",
-		CreatedAt: time.Time{}.AddDate(2000, 1, 1),
-		UpdatedAt: time.Time{}.AddDate(2000, 2, 2),
+		ID:           "123",
+		Fullname:     "John Doe",
+		Username:     "jdoe",
+		Birthdate:    "2000-01-01",
+		Email:        "jdoe@mail.com",
+		PasswordHash: "password",
+		Role:         "admin",
+		CreatedAt:    time.Time{}.AddDate(2000, 1, 1),
+		UpdatedAt:    time.Time{}.AddDate(2000, 2, 2),
 	}
 
 	expected := User{
