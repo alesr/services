@@ -3,8 +3,11 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -20,8 +23,6 @@ const (
 
 	selectByEmailQuery string = `SELECT id,fullname,username,birthdate,email,password_hash,
 	role,created_at,updated_at FROM users WHERE email = $1;`
-
-	existsQuery string = "SELECT COUNT(*) FROM users WHERE username = $1 OR email = $2;"
 )
 
 // Postgres represents a user repository instance with the given database connection
@@ -36,32 +37,20 @@ func (p *Postgres) Insert(ctx context.Context, u *User) (*User, error) {
 	var res User
 
 	if err := p.QueryRowContext(
-		ctx,
-		insertQuery,
-		u.ID,
-		u.Fullname,
-		u.Username,
-		u.Birthdate,
-		u.Email,
-		u.PasswordHash,
-		u.Role,
-		u.CreatedAt,
-		u.UpdatedAt,
+		ctx, insertQuery, u.ID, u.Fullname, u.Username,
+		u.Birthdate, u.Email, u.PasswordHash,
+		u.Role, u.CreatedAt, u.UpdatedAt,
 	).Scan(
 		&res.ID, &res.Fullname, &res.Username, &res.Birthdate, &res.Email,
 		&res.PasswordHash, &res.Role, &res.CreatedAt, &res.UpdatedAt,
 	); err != nil {
+		var e *pgconn.PgError
+		if errors.As(err, &e) && e.Code == pgerrcode.UniqueViolation {
+			return nil, ErrDuplicateRecord
+		}
 		return nil, fmt.Errorf("could not scan inserted user: %s", err)
 	}
 	return &res, nil
-}
-
-func (p *Postgres) Exists(ctx context.Context, username, email string) (bool, error) {
-	var count int
-	if err := p.QueryRowContext(ctx, existsQuery, username, email).Scan(&count); err != nil {
-		return false, fmt.Errorf("failed to check if user exists: %w", err)
-	}
-	return count > 0, nil
 }
 
 // SelectByID selects a user by id and returns the user
