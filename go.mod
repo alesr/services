@@ -5,6 +5,8 @@ go 1.18
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/google/uuid v1.3.0
+	github.com/jackc/pgconn v1.13.0
+	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/stretchr/testify v1.8.0
@@ -12,10 +14,14 @@ require (
 )
 
 require (
-	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
+	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/fake v0.0.0-20150926172116-812a484cc733 // indirect
+	github.com/jackc/pgio v1.0.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgproto3/v2 v2.3.1 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/lib/pq v1.10.2 // indirect
 	github.com/pkg/errors v0.8.1 // indirect

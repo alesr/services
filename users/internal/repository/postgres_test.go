@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	_ "github.com/jackc/pgx/stdlib"
@@ -17,66 +18,53 @@ func TestIntegrationInsert(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	dbConn := setupDB(t)
-	defer teardownDB(t, dbConn)
+	t.Run("user is inserted", func(t *testing.T) {
+		dbConn := setupDB(t)
+		defer teardownDB(t, dbConn)
 
-	repo := NewPostgres(dbConn)
+		repo := NewPostgres(dbConn)
 
-	user := &User{
-		ID:           uuid.New().String(),
-		Fullname:     "John Doe",
-		Username:     "jdoe",
-		Birthdate:    "2000-01-01",
-		Email:        "joedoe@mail.com",
-		PasswordHash: "123456",
-		Role:         "user",
-		CreatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-		UpdatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-	}
+		user := &User{
+			ID:           uuid.New().String(),
+			Fullname:     "John Doe",
+			Username:     "jdoe",
+			Birthdate:    "2000-01-01",
+			Email:        "joedoe@mail.com",
+			PasswordHash: "123456",
+			Role:         "user",
+			CreatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			UpdatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		}
 
-	actual, err := repo.Insert(context.TODO(), user)
-	require.NoError(t, err)
-
-	require.Equal(t, user, actual)
-}
-
-func TestIntegrationExists(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
-
-	dbConn := setupDB(t)
-	defer teardownDB(t, dbConn)
-
-	repo := NewPostgres(dbConn)
-
-	user := &User{
-		ID:           uuid.New().String(),
-		Fullname:     "John Doe",
-		Username:     "jdoe",
-		Birthdate:    "2000-01-01",
-		Email:        "",
-		PasswordHash: "123456",
-		Role:         "user",
-		CreatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-		UpdatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-	}
-
-	_, err := repo.Insert(context.TODO(), user)
-	require.NoError(t, err)
-
-	t.Run("user exists", func(t *testing.T) {
-		actual, err := repo.Exists(context.TODO(), user.Username, user.Email)
+		actual, err := repo.Insert(context.TODO(), user)
 		require.NoError(t, err)
 
-		require.True(t, actual)
+		require.Equal(t, user, actual)
 	})
 
-	t.Run("user does not exist", func(t *testing.T) {
-		actual, err := repo.Exists(context.TODO(), "foo", "foo@bar.quz")
+	t.Run("cannot insert the same user twice", func(t *testing.T) {
+		dbConn := setupDB(t)
+		defer teardownDB(t, dbConn)
+
+		repo := NewPostgres(dbConn)
+
+		user := &User{
+			ID:           uuid.New().String(),
+			Fullname:     "John Doe",
+			Username:     "jdoe",
+			Birthdate:    "2000-01-01",
+			Email:        "joedoe@mail.com",
+			PasswordHash: "123456",
+			Role:         "user",
+			CreatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			UpdatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		}
+
+		_, err := repo.Insert(context.TODO(), user)
 		require.NoError(t, err)
 
-		require.False(t, actual)
+		_, err = repo.Insert(context.TODO(), user)
+		assert.Error(t, err)
 	})
 }
 

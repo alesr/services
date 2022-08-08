@@ -1,8 +1,11 @@
 package repository
 
 import (
+	"errors"
 	"time"
 )
+
+var ErrDuplicateRecord error = errors.New("duplicate record")
 
 // User represents a user in the database table
 type User struct {

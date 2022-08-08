@@ -25,7 +25,6 @@ type (
 	}
 
 	repo interface {
-		Exists(ctx context.Context, username, email string) (bool, error)
 		Insert(ctx context.Context, user *repository.User) (*repository.User, error)
 		SelectByID(ctx context.Context, id string) (*repository.User, error)
 		SelectByEmail(ctx context.Context, email string) (*repository.User, error)
@@ -56,15 +55,6 @@ func (s *DefaultService) Create(ctx context.Context, in CreateUserInput) (*User,
 		return nil, errCannotCreateAdminUser
 	}
 
-	exists, err := s.repo.Exists(ctx, in.Username, in.Email)
-	if err != nil {
-		return nil, fmt.Errorf("could not check if user exists: %s", err)
-	}
-
-	if exists {
-		return nil, errAlreadyExists
-	}
-
 	hash, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("could not hash password: %s", err)
@@ -82,6 +72,9 @@ func (s *DefaultService) Create(ctx context.Context, in CreateUserInput) (*User,
 		UpdatedAt:    time.Now(),
 	})
 	if err != nil {
+		if errors.Is(err, repository.ErrDuplicateRecord) {
+			return nil, errAlreadyExists
+		}
 		return nil, fmt.Errorf("could not insert user: %s", err)
 	}
 

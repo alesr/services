@@ -67,31 +67,17 @@ func TestCreate(t *testing.T) {
 			name:      "user aleready exists",
 			givenUser: givenUser,
 			givenRepoMock: &repositoryMock{
-				existsFunc: func(ctx context.Context, username, email string) (bool, error) {
-					return true, nil
+				insertFunc: func(ctx context.Context, user *repository.User) (*repository.User, error) {
+					return nil, repository.ErrDuplicateRecord
 				},
 			},
 			expectedUser:  nil,
 			expectedError: errAlreadyExists,
 		},
 		{
-			name:      "check if user already exists error",
-			givenUser: givenUser,
-			givenRepoMock: &repositoryMock{
-				existsFunc: func(ctx context.Context, username, email string) (bool, error) {
-					return false, errors.New("some error")
-				},
-			},
-			expectedUser:  nil,
-			expectedError: fmt.Errorf("could not check if user exists: some error"),
-		},
-		{
 			name:      "user is created",
 			givenUser: givenUser,
 			givenRepoMock: &repositoryMock{
-				existsFunc: func(ctx context.Context, username, email string) (bool, error) {
-					return false, nil
-				},
 				insertFunc: func(ctx context.Context, user *repository.User) (*repository.User, error) {
 					assert.NotEmpty(t, user.ID)
 					assert.NotEmpty(t, user.PasswordHash)
@@ -127,9 +113,6 @@ func TestCreate(t *testing.T) {
 			name:      "insert user error",
 			givenUser: givenUser,
 			givenRepoMock: &repositoryMock{
-				existsFunc: func(ctx context.Context, username, email string) (bool, error) {
-					return false, nil
-				},
 				insertFunc: func(ctx context.Context, user *repository.User) (*repository.User, error) {
 					return nil, errors.New("some error")
 				},
