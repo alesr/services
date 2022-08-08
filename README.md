@@ -1,5 +1,4 @@
 # stdservices
-![Coverage](https://img.shields.io/badge/Coverage-72.6%25-brightgreen)
 ![master](https://github.com/alesr/stdservices/actions/workflows/ci.yaml/badge.svg)
 
 
