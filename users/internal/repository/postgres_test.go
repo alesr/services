@@ -106,6 +106,16 @@ func TestIntegrationSelectByID(t *testing.T) {
 
 		require.Nil(t, actual)
 	})
+
+	t.Run("user is deleted", func(t *testing.T) {
+		err := repo.DeleteByID(context.TODO(), user.ID)
+		require.NoError(t, err)
+
+		actual, err := repo.SelectByID(context.TODO(), user.ID)
+		require.NoError(t, err)
+
+		require.Nil(t, actual)
+	})
 }
 
 func TestIntegrationSelectByEmail(t *testing.T) {
@@ -145,6 +155,57 @@ func TestIntegrationSelectByEmail(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Nil(t, actual)
+	})
+
+	t.Run("user is deleted", func(t *testing.T) {
+		err := repo.DeleteByID(context.TODO(), user.ID)
+		require.NoError(t, err)
+
+		actual, err := repo.SelectByID(context.TODO(), user.ID)
+		require.NoError(t, err)
+
+		require.Nil(t, actual)
+	})
+}
+
+func TestIntegrationDeleteByID(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
+	dbConn := setupDB(t)
+	defer teardownDB(t, dbConn)
+
+	repo := NewPostgres(dbConn)
+
+	user := &User{
+		ID:           uuid.New().String(),
+		Fullname:     "John Doe",
+		Username:     "jdoe",
+		Birthdate:    "2000-01-01",
+		Email:        "joedoe@mail.com",
+		PasswordHash: "123456",
+		Role:         "user",
+		CreatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		UpdatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	_, err := repo.Insert(context.TODO(), user)
+	require.NoError(t, err)
+
+	t.Run("user exists", func(t *testing.T) {
+		err := repo.DeleteByID(context.TODO(), user.ID)
+		require.NoError(t, err)
+
+		actual, err := repo.SelectByID(context.TODO(), user.ID)
+		require.NoError(t, err)
+
+		require.Nil(t, actual)
+	})
+
+	t.Run("user does not exist", func(t *testing.T) {
+		err := repo.DeleteByID(context.TODO(), uuid.New().String())
+		assert.Equal(t, ErrRecordNotFound, err)
 	})
 }
 
