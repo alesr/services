@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/alesr/stdservices/users/internal/repository"
+	"github.com/alesr/stdservices/internal/users/repository"
 )
 
 var _ repo = (*repositoryMock)(nil)
