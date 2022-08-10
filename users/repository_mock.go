@@ -13,6 +13,7 @@ type repositoryMock struct {
 	insertFunc        func(ctx context.Context, user *repository.User) (*repository.User, error)
 	selectByIDFunc    func(ctx context.Context, id string) (*repository.User, error)
 	selectByEmailFunc func(ctx context.Context, email string) (*repository.User, error)
+	deleteByIDFunc    func(ctx context.Context, id string) error
 }
 
 func (m *repositoryMock) Insert(ctx context.Context, user *repository.User) (*repository.User, error) {
@@ -34,4 +35,11 @@ func (m *repositoryMock) SelectByEmail(ctx context.Context, email string) (*repo
 		return nil, errors.New("repositoryMock.selectByEmailFunc is nil")
 	}
 	return m.selectByEmailFunc(ctx, email)
+}
+
+func (m *repositoryMock) DeleteByID(ctx context.Context, id string) error {
+	if m.deleteByIDFunc == nil {
+		return errors.New("repositoryMock.deleteByIDfunc is nil")
+	}
+	return m.deleteByIDFunc(ctx, id)
 }

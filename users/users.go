@@ -28,6 +28,7 @@ type (
 		Insert(ctx context.Context, user *repository.User) (*repository.User, error)
 		SelectByID(ctx context.Context, id string) (*repository.User, error)
 		SelectByEmail(ctx context.Context, email string) (*repository.User, error)
+		DeleteByID(ctx context.Context, id string) error
 	}
 
 	DefaultService struct {
@@ -106,6 +107,17 @@ func (s *DefaultService) FetchByID(ctx context.Context, id string) (*User, error
 		return nil, fmt.Errorf("could not parse storage user to domain model: %s", err)
 	}
 	return user, nil
+}
+
+func (s *DefaultService) Delete(ctx context.Context, id string) error {
+	if err := validate.ID(id); err != nil {
+		return fmt.Errorf("could not validate id: %w", err)
+	}
+
+	if err := s.repo.DeleteByID(ctx, id); err != nil {
+		return fmt.Errorf("could not delete user by id: %s", err)
+	}
+	return nil
 }
 
 // GenerateToken generates a JWT token for the user

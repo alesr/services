@@ -5,7 +5,10 @@ import (
 	"time"
 )
 
-var ErrDuplicateRecord error = errors.New("duplicate record")
+var (
+	ErrDuplicateRecord error = errors.New("duplicate record")
+	ErrRecordNotFound  error = errors.New("record not found")
+)
 
 // User represents a user in the database table
 type User struct {

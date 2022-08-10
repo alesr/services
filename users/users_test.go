@@ -221,6 +221,76 @@ func TestFetchByID_validation(t *testing.T) {
 	}
 }
 
+func TestDelete_validation(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		givenID       string
+		expectedError bool
+	}{
+		{
+			name:          "emty id",
+			givenID:       "",
+			expectedError: true,
+		},
+		{
+			name:          "invalid id",
+			givenID:       "%invalid-id%",
+			expectedError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := DefaultService{}
+
+			err := svc.Delete(context.Background(), tc.givenID)
+			require.Equal(t, tc.expectedError, err != nil)
+		})
+	}
+}
+
+func TestDelete(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		givenRepoMock *repositoryMock
+		expectError   bool
+	}{
+		{
+			name: "delete user error",
+			givenRepoMock: &repositoryMock{
+				deleteByIDFunc: func(ctx context.Context, id string) error {
+					return errors.New("some error")
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "delete user success",
+			givenRepoMock: &repositoryMock{
+				deleteByIDFunc: func(ctx context.Context, id string) error {
+					return nil
+				},
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := DefaultService{
+				repo: tc.givenRepoMock,
+			}
+
+			err := svc.Delete(context.Background(), uuid.New().String())
+			assert.Equal(t, tc.expectError, err != nil)
+		})
+	}
+}
+
 func TestGenerateToken_validation(t *testing.T) {
 	t.Parallel()
 
