@@ -19,10 +19,12 @@ const (
 	id,fullname,username,birthdate,email,password_hash,role,created_at,updated_at;`
 
 	selectByIDQuery string = `SELECT id,fullname,username,birthdate,email,password_hash,
-	role,created_at,updated_at FROM users WHERE id = $1;`
+	role,created_at,updated_at FROM users WHERE id = $1 AND deleted_at IS NULL;`
 
 	selectByEmailQuery string = `SELECT id,fullname,username,birthdate,email,password_hash,
-	role,created_at,updated_at FROM users WHERE email = $1;`
+	role,created_at,updated_at FROM users WHERE email = $1 AND deleted_at IS NULL;`
+
+	deleteByIDQuery string = `UPDATE users SET deleted_at = NOW() WHERE id = $1;`
 )
 
 // Postgres represents a user repository instance with the given database connection
@@ -80,7 +82,24 @@ func (p *Postgres) selectUser(ctx context.Context, query, arg string) (*User, er
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to select user: %s", err)
+		return nil, fmt.Errorf("could not select user: %s", err)
 	}
 	return &u, nil
+}
+
+func (p *Postgres) DeleteByID(ctx context.Context, id string) error {
+	res, err := p.ExecContext(ctx, deleteByIDQuery, id)
+	if err != nil {
+		return fmt.Errorf("could not delete user: %s", err)
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("could not get rows affected: %s", err)
+	}
+
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+	return nil
 }
