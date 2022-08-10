@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alesr/stdservices/internal/users/repository"
 	"github.com/alesr/stdservices/pkg/validate"
-	"github.com/alesr/stdservices/users/internal/repository"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
