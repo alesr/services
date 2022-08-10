@@ -12,7 +12,7 @@ type MockService struct {
 	DeleteFunc        func(ctx context.Context, id string) error
 	FetchByIDFunc     func(ctx context.Context, id string) (*User, error)
 	GenerateTokenFunc func(ctx context.Context, email, password string) (string, error)
-	VerifyTokenFunc   func(ctx context.Context, token string) (*User, error)
+	VerifyTokenFunc   func(ctx context.Context, token string) (*VerifyTokenResponse, error)
 }
 
 func (m *MockService) Create(ctx context.Context, in CreateUserInput) (*User, error) {
@@ -43,7 +43,7 @@ func (m *MockService) GenerateToken(ctx context.Context, email, password string)
 	return m.GenerateTokenFunc(ctx, email, password)
 }
 
-func (m *MockService) VerifyToken(ctx context.Context, token string) (*User, error) {
+func (m *MockService) VerifyToken(ctx context.Context, token string) (*VerifyTokenResponse, error) {
 	if m.VerifyTokenFunc == nil {
 		return nil, errors.New("MockService.VerifyTokenFunc is nil")
 	}
