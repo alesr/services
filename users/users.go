@@ -19,6 +19,7 @@ type (
 	// Service defines the service interface
 	Service interface {
 		Create(ctx context.Context, in CreateUserInput) (*User, error)
+		Delete(ctx context.Context, id string) error
 		FetchByID(ctx context.Context, id string) (*User, error)
 		GenerateToken(ctx context.Context, email, password string) (string, error)
 		VerifyToken(ctx context.Context, token string) (*User, error)
