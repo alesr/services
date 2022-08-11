@@ -12,12 +12,15 @@ import (
 	"github.com/alesr/stdservices/users/repository"
 	"go.uber.org/zap"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-var _ Service = (*DefaultService)(nil)
+var (
+	_                Service                = (*DefaultService)(nil)
+	jwtSigningMethod *jwt.SigningMethodHMAC = jwt.SigningMethodHS512
+)
 
 type (
 	// Service defines the service interface
@@ -52,6 +55,12 @@ type (
 
 	emailer interface {
 		Send(from, to string, body []byte) error
+	}
+
+	jwtClaim struct {
+		id   string
+		role string
+		jwt.StandardClaims
 	}
 )
 
@@ -208,9 +217,14 @@ func (s *DefaultService) VerifyToken(ctx context.Context, token string) (*Verify
 		return nil, errTokenEmpty
 	}
 
-	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+	jwtToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		method, ok := token.Method.(*jwt.SigningMethodHMAC)
+		if !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		if method.Alg() != jwtSigningMethod.Alg() {
+			return nil, errors.New("invalid token signing method")
 		}
 		return []byte(s.jwtSigningKey), nil
 	})
@@ -218,42 +232,37 @@ func (s *DefaultService) VerifyToken(ctx context.Context, token string) (*Verify
 		return nil, fmt.Errorf("could not parse token: %s", err)
 	}
 
-	if !parsedToken.Valid {
+	claims, ok := jwtToken.Claims.(jwt.MapClaims)
+	if !ok || !jwtToken.Valid {
 		return nil, errTokenInvalid
 	}
 
-	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	userID, ok := claims["user_id"].(string)
 	if !ok {
-		return nil, errors.New("could not parse token claims")
+		return nil, fmt.Errorf("could not find user id in token")
 	}
 
-	// Check expiration
-	exp, ok := claims["exp"].(float64)
+	role, ok := claims["role"].(string)
 	if !ok {
-		return nil, errors.New("could not parse token expiration")
+		return nil, fmt.Errorf("could not find role in token")
 	}
 
-	if exp < float64(time.Now().Unix()) {
+	expiration, ok := claims["exp"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("could not find expiration in token")
+	}
+
+	if time.Unix(int64(expiration), 0).Before(time.Now()) {
 		return nil, errTokenExpired
 	}
 
-	id, ok := claims["id"].(string)
-	if !ok {
-		return nil, errors.New("could not parse token id")
-	}
-
-	storageUser, err := s.repo.SelectByID(ctx, id)
+	storageUser, err := s.repo.SelectByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("could not select user by id: %s", err)
 	}
 
 	if storageUser == nil {
 		return nil, errNotFound
-	}
-
-	role, ok := claims["role"].(string)
-	if !ok {
-		return nil, errors.New("could not parse token role")
 	}
 
 	return &VerifyTokenResponse{
@@ -295,18 +304,22 @@ func (s *DefaultService) generateJWT(userID string, role role) (string, error) {
 		return "", errRoleInvalid
 	}
 
-	claims := jwt.MapClaims{
-		"id":   userID,
-		"role": string(role),
-		"exp":  time.Now().Add(time.Hour * 24).Unix(),
-	}
+	now := time.Now().UTC()
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwtSigningMethod, jwtClaim{
+		userID,
+		string(role),
+		jwt.StandardClaims{
+			IssuedAt:  now.Unix(),
+			ExpiresAt: now.Add(time.Hour * 24).Unix(),
+		},
+	})
 
 	signedString, err := token.SignedString([]byte(s.jwtSigningKey))
 	if err != nil {
 		return "", fmt.Errorf("could not sign token: %s", err)
 	}
+
 	return signedString, nil
 }
 
