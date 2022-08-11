@@ -45,27 +45,31 @@ a repository layer for storing users in a database. A PostgreSQL implementation 
 
 ```go
 type Service interface {
-		// Create creates a new user and returns the created user with its ID and "user" role
-		Create(ctx context.Context, in CreateUserInput) (*User, error)
+	// Create creates a new user and returns the created user with its ID and "user" role
+	Create(ctx context.Context, in CreateUserInput) (*User, error)
 
-		// Delete soft deletes a user by id
-		Delete(ctx context.Context, id string) error
+	// Delete soft deletes a user by id
+	Delete(ctx context.Context, id string) error
 
-		// FetchByID fetches a non-deleted user by id and returns the user
-		FetchByID(ctx context.Context, id string) (*User, error)
+	// FetchByID fetches a non-deleted user by id and returns the user
+	FetchByID(ctx context.Context, id string) (*User, error)
 
-		// GenerateToken generates a JWT token for the user
-		GenerateToken(ctx context.Context, email, password string) (string, error)
+	// GenerateToken generates a JWT token for the user
+	GenerateToken(ctx context.Context, email, password string) (string, error)
 
-		// VerifyToken verifies a JWT token and returns the user username, id and role
-		VerifyToken(ctx context.Context, token string) (*VerifyTokenResponse, error)
-	}
+	// VerifyToken verifies a JWT token and returns the user username, id and role
+	VerifyToken(ctx context.Context, token string) (*VerifyTokenResponse, error)
+
+	// SendEmailVerification sends an email verification to the user.
+	// The user must be created before calling this method.
+	SendEmailVerification(ctx context.Context, userID, to string) error
+}
 ```
 
 ### Upcoming features
     - Edit user
     - Password reset
-    - Email verification
+    - Complete email verification
     - Feed service
     - Profile service
     ...
