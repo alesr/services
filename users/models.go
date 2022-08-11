@@ -24,10 +24,14 @@ func (r role) String() string {
 }
 
 func (r role) validate() error {
-	if r != RoleAdmin && r != RoleUser {
+	switch r {
+	case RoleUser:
+		return nil
+	case RoleAdmin:
+		return errForbidenRole
+	default:
 		return errRoleInvalid
 	}
-	return nil
 }
 
 // User represents a user domain model
@@ -51,7 +55,6 @@ type CreateUserInput struct {
 	Email           string
 	Password        string
 	ConfirmPassword string
-	Role            string
 }
 
 func (in *CreateUserInput) validate() error {
@@ -77,12 +80,6 @@ func (in *CreateUserInput) validate() error {
 
 	if in.Password != in.ConfirmPassword {
 		return errPasswordMismatch
-	}
-
-	roleInput := role(in.Role)
-
-	if err := roleInput.validate(); err != nil {
-		return newE(err.Error())
 	}
 	return nil
 }

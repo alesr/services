@@ -27,7 +27,7 @@ const (
 	deleteByIDQuery string = "UPDATE users SET deleted_at = NOW() WHERE id = $1;"
 
 	insertEmailVerificationQuery string = `INSERT INTO email_verifications 
-	(token,user_id,created_at,expires_at) VALUES ($1,$2,$3,$4);`
+	(code,user_id,created_at,expires_at) VALUES ($1,$2,$3,$4);`
 )
 
 // Postgres represents a user repository instance with the given database connection
@@ -108,7 +108,7 @@ func (p *Postgres) DeleteByID(ctx context.Context, id string) error {
 }
 
 func (p *Postgres) InsertEmailVerification(ctx context.Context, in EmailVerification) error {
-	_, err := p.ExecContext(ctx, insertEmailVerificationQuery, in.Token, in.UserID, in.CreatedAt, in.ExpiresAt)
+	_, err := p.ExecContext(ctx, insertEmailVerificationQuery, in.Code, in.UserID, in.CreatedAt, in.ExpiresAt)
 	if err != nil {
 		return fmt.Errorf("could not insert email verification: %s", err)
 	}

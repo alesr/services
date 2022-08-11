@@ -2,38 +2,24 @@ package email
 
 import (
 	"fmt"
+	"net"
 	"net/smtp"
 )
 
-type Config struct {
-	Sender   string
-	Identity string
-	Username string
-	Password string
-	Host     string
-	Port     string
+type email struct {
+	auth smtp.Auth
+	addr string
 }
 
-type mailer struct {
-	sender string
-	host   string
-	port   string
-	auth   smtp.Auth
-}
-
-func New(cfg Config) *mailer {
-	return &mailer{
-		sender: cfg.Sender,
-		host:   cfg.Host,
-		port:   cfg.Port,
-		auth:   smtp.PlainAuth(cfg.Identity, cfg.Username, cfg.Password, cfg.Host),
+func New(identity, username, password, host, port string) *email {
+	return &email{
+		auth: smtp.PlainAuth(identity, username, password, host),
+		addr: net.JoinHostPort(host, port),
 	}
 }
 
-func (m *mailer) Send(to string, body []byte) error {
-	if err := smtp.SendMail(
-		m.host+":"+m.port, m.auth, m.sender, []string{to}, body,
-	); err != nil {
+func (e *email) Send(from, to string, body []byte) error {
+	if err := smtp.SendMail(e.addr, e.auth, from, []string{to}, body); err != nil {
 		return fmt.Errorf("could not send mail: %s", err)
 	}
 	return nil

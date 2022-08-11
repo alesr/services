@@ -244,7 +244,7 @@ func TestIntegrationInsertEmailVerification(t *testing.T) {
 	require.NoError(t, err)
 
 	emailVerification := EmailVerification{
-		Token:     "123456",
+		Code:      "123456",
 		UserID:    userID,
 		CreatedAt: time.Time{},
 		ExpiresAt: time.Time{},

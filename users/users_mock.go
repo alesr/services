@@ -13,7 +13,7 @@ type MockService struct {
 	FetchByIDFunc             func(ctx context.Context, id string) (*User, error)
 	GenerateTokenFunc         func(ctx context.Context, email, password string) (string, error)
 	VerifyTokenFunc           func(ctx context.Context, token string) (*VerifyTokenResponse, error)
-	SendEmailVerificationFunc func(ctx context.Context, userID, to string) error
+	SendEmailVerificationFunc func(ctx context.Context, userID, username, to string) error
 }
 
 func (m *MockService) Create(ctx context.Context, in CreateUserInput) (*User, error) {
@@ -51,9 +51,9 @@ func (m *MockService) VerifyToken(ctx context.Context, token string) (*VerifyTok
 	return m.VerifyTokenFunc(ctx, token)
 }
 
-func (m *MockService) SendEmailVerification(ctx context.Context, userID, to string) error {
+func (m *MockService) SendEmailVerification(ctx context.Context, userID, username, to string) error {
 	if m.SendEmailVerificationFunc == nil {
 		return errors.New("MockService.SendEmailVerificationFunc is nil")
 	}
-	return m.SendEmailVerificationFunc(ctx, userID, to)
+	return m.SendEmailVerificationFunc(ctx, userID, username, to)
 }

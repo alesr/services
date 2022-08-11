@@ -25,7 +25,7 @@ type User struct {
 }
 
 type EmailVerification struct {
-	Token     string
+	Code      string
 	UserID    string
 	CreatedAt time.Time
 	ExpiresAt time.Time
