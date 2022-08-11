@@ -27,7 +27,8 @@ test-it: ## run integration tests
 	make db-down
 
 .PHONY: test
-test: ## Run unit and integration tests
+test: ## Run linter, unit and integration tests
+	make lint
 	make test-unit
 	make test-it
 
