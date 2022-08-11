@@ -51,7 +51,7 @@ type CreateUserInput struct {
 	Email           string
 	Password        string
 	ConfirmPassword string
-	Role            role
+	Role            string
 }
 
 func (in *CreateUserInput) validate() error {
@@ -79,7 +79,9 @@ func (in *CreateUserInput) validate() error {
 		return errPasswordMismatch
 	}
 
-	if err := in.Role.validate(); err != nil {
+	roleInput := role(in.Role)
+
+	if err := roleInput.validate(); err != nil {
 		return newE(err.Error())
 	}
 	return nil

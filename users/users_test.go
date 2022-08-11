@@ -73,11 +73,11 @@ func TestCreate(t *testing.T) {
 		Email:           "joedoe@mail.com",
 		Password:        "password#123",
 		ConfirmPassword: "password#123",
-		Role:            RoleUser,
+		Role:            string(RoleUser),
 	}
 
 	givenUserWithAdminRole := givenUser
-	givenUserWithAdminRole.Role = RoleAdmin
+	givenUserWithAdminRole.Role = string(RoleAdmin)
 
 	testCases := []struct {
 		name             string
