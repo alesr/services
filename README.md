@@ -64,7 +64,7 @@ type Service interface {
 
 	// SendEmailVerification sends an email verification to the user.
 	// The user must be created before calling this method.
-	SendEmailVerification(ctx context.Context, userID, to string) error
+	SendEmailVerification(ctx context.Context, userID, username, to string) error
 }
 ```
 
