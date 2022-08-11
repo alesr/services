@@ -98,7 +98,7 @@ func (s *DefaultService) Create(ctx context.Context, in CreateUserInput) (*User,
 	}
 
 	// Block creation of users with admin role
-	if in.Role == RoleAdmin {
+	if role(in.Role) == RoleAdmin {
 		return nil, errCannotCreateAdminUser
 	}
 
