@@ -30,9 +30,9 @@ func New(cfg Config) *mailer {
 	}
 }
 
-func (m *mailer) Send(to, subject, body string) error {
+func (m *mailer) Send(to string, body []byte) error {
 	if err := smtp.SendMail(
-		m.host+":"+m.port, m.auth, m.sender, []string{to}, []byte(body),
+		m.host+":"+m.port, m.auth, m.sender, []string{to}, body,
 	); err != nil {
 		return fmt.Errorf("could not send mail: %s", err)
 	}

@@ -5,12 +5,12 @@ import "errors"
 var _ emailer = (*emailerMock)(nil)
 
 type emailerMock struct {
-	sendFunc func(to, subject, body string) error
+	sendFunc func(to string, body []byte) error
 }
 
-func (m *emailerMock) Send(to, subject, body string) error {
+func (m *emailerMock) Send(to string, body []byte) error {
 	if m.sendFunc == nil {
 		return errors.New("emailerMock.sendFunc is nil")
 	}
-	return m.sendFunc(to, subject, body)
+	return m.sendFunc(to, body)
 }
