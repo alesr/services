@@ -12,13 +12,21 @@ var (
 
 // User represents a user in the database table
 type User struct {
-	ID           string
-	Fullname     string
-	Username     string
-	Birthdate    string
-	Email        string
-	PasswordHash string
-	Role         string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID            string
+	Fullname      string
+	Username      string
+	Birthdate     string
+	Email         string
+	PasswordHash  string
+	Role          string
+	EmailVerified bool
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+type EmailVerification struct {
+	Token     string
+	UserID    string
+	CreatedAt time.Time
+	ExpiresAt time.Time
 }

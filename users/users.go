@@ -4,14 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/alesr/stdservices/internal/users/repository"
 	"github.com/alesr/stdservices/pkg/validate"
+	"go.uber.org/zap"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	subject string = "%s: account verification"
+	body    string = "Please click the following link to verify your account: %s/%s"
 )
 
 var _ Service = (*DefaultService)(nil)
@@ -34,6 +41,10 @@ type (
 
 		// VerifyToken verifies a JWT token and returns the user username, id and role
 		VerifyToken(ctx context.Context, token string) (*VerifyTokenResponse, error)
+
+		// SendEmailVerification sends an email verification to the user.
+		// The user must be created before calling this method.
+		SendEmailVerification(ctx context.Context, userID, to string) error
 	}
 
 	repo interface {
@@ -41,19 +52,42 @@ type (
 		SelectByID(ctx context.Context, id string) (*repository.User, error)
 		SelectByEmail(ctx context.Context, email string) (*repository.User, error)
 		DeleteByID(ctx context.Context, id string) error
+		InsertEmailVerification(ctx context.Context, in repository.EmailVerification) error
+	}
+
+	emailer interface {
+		Send(to, subject, body string) error
 	}
 
 	DefaultService struct {
-		jwtSigningKey string
-		repo          repo
+		logger                    *zap.Logger
+		appName                   string
+		jwtSigningKey             string
+		emailVerificationSecret   string
+		emailVerificationEndpoint url.URL
+		emailer                   emailer
+		repo                      repo
 	}
 )
 
 // New instantiates a new users service
-func New(jwtSigningKey string, repo repo) *DefaultService {
+func New(
+	logger *zap.Logger,
+	appName string,
+	jwtSigningKey string,
+	emailVerificationSecret string,
+	emailVerificationEndpoint url.URL,
+	emailer emailer,
+	repo repo,
+) *DefaultService {
 	return &DefaultService{
-		jwtSigningKey: jwtSigningKey,
-		repo:          repo,
+		logger:                    logger,
+		appName:                   appName,
+		jwtSigningKey:             jwtSigningKey,
+		emailVerificationSecret:   emailVerificationSecret,
+		emailVerificationEndpoint: emailVerificationEndpoint,
+		emailer:                   emailer,
+		repo:                      repo,
 	}
 }
 
@@ -73,16 +107,19 @@ func (s *DefaultService) Create(ctx context.Context, in CreateUserInput) (*User,
 		return nil, fmt.Errorf("could not hash password: %s", err)
 	}
 
+	userID := uuid.NewString()
+
 	insertedUser, err := s.repo.Insert(ctx, &repository.User{
-		ID:           uuid.NewString(),
-		Fullname:     in.Fullname,
-		Username:     in.Username,
-		Birthdate:    in.Birthdate,
-		Email:        in.Email,
-		PasswordHash: string(hash),
-		Role:         string(in.Role),
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
+		ID:            userID,
+		Fullname:      in.Fullname,
+		Username:      in.Username,
+		Birthdate:     in.Birthdate,
+		Email:         in.Email,
+		EmailVerified: false,
+		PasswordHash:  string(hash),
+		Role:          string(in.Role),
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	})
 	if err != nil {
 		if errors.Is(err, repository.ErrDuplicateRecord) {
@@ -91,11 +128,16 @@ func (s *DefaultService) Create(ctx context.Context, in CreateUserInput) (*User,
 		return nil, fmt.Errorf("could not insert user: %s", err)
 	}
 
+	if err := s.SendEmailVerification(ctx, userID, in.Email); err != nil {
+		// It doesn't matter if the email verification fails, the user is created
+		// and the user can request a new email verification
+		s.logger.Error("could not send email verification", zap.String("user_id", userID), zap.Error(err))
+	}
+
 	createdUser, err := newUserFromRepository(insertedUser)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse storage user to domain model: %s", err)
 	}
-
 	return createdUser, nil
 }
 
@@ -227,6 +269,37 @@ func (s *DefaultService) VerifyToken(ctx context.Context, token string) (*Verify
 	}, nil
 }
 
+func (s *DefaultService) SendEmailVerification(ctx context.Context, userID, to string) error {
+	subject := fmt.Sprintf(subject, s.appName)
+
+	// Generate verification token from user email and secret
+	token, err := bcrypt.GenerateFromPassword(
+		[]byte(to+s.emailVerificationSecret),
+		bcrypt.DefaultCost,
+	)
+	if err != nil {
+		return fmt.Errorf("could not email verification token: %s", err)
+	}
+
+	in := repository.EmailVerification{
+		Token:     string(token),
+		UserID:    userID,
+		CreatedAt: time.Now().UTC(),
+		ExpiresAt: time.Now().UTC().Add(time.Hour * 24),
+	}
+
+	if err := s.repo.InsertEmailVerification(ctx, in); err != nil {
+		return fmt.Errorf("could not insert email verification: %s", err)
+	}
+
+	body := fmt.Sprintf(body, s.emailVerificationEndpoint.String(), token)
+
+	if err := s.emailer.Send(to, subject, body); err != nil {
+		return fmt.Errorf("could not send email: %s", err)
+	}
+	return nil
+}
+
 func (s *DefaultService) generateJWT(userID string, role role) (string, error) {
 	if err := validate.ID(userID); err != nil {
 		return "", fmt.Errorf("could not validate id: %w", err)
@@ -263,13 +336,14 @@ func newUserFromRepository(user *repository.User) (*User, error) {
 	}
 
 	return &User{
-		ID:        user.ID,
-		Fullname:  user.Fullname,
-		Username:  user.Username,
-		Birthdate: user.Birthdate,
-		Email:     user.Email,
-		Role:      role,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		ID:            user.ID,
+		Fullname:      user.Fullname,
+		Username:      user.Username,
+		Birthdate:     user.Birthdate,
+		Email:         user.Email,
+		EmailVerified: user.EmailVerified,
+		Role:          role,
+		CreatedAt:     user.CreatedAt,
+		UpdatedAt:     user.UpdatedAt,
 	}, nil
 }

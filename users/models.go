@@ -32,14 +32,15 @@ func (r role) validate() error {
 
 // User represents a user domain model
 type User struct {
-	ID        string
-	Fullname  string
-	Username  string
-	Birthdate string
-	Email     string
-	Role      role
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID            string
+	Fullname      string
+	Username      string
+	Birthdate     string
+	Email         string
+	EmailVerified bool
+	Role          role
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 // CreateUserInput represents the input data for creating a user
