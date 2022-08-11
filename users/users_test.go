@@ -102,7 +102,7 @@ func TestCreate(t *testing.T) {
 			name:      "user is created",
 			givenUser: givenUser,
 			givenEmailerMock: &emailerMock{
-				sendFunc: func(to, subject, body string) error {
+				sendFunc: func(to string, body []byte) error {
 					return nil
 				},
 			},
@@ -168,7 +168,7 @@ func TestCreate(t *testing.T) {
 			name:      "send email verification error still creates an user",
 			givenUser: givenUser,
 			givenEmailerMock: &emailerMock{
-				sendFunc: func(to, subject, body string) error {
+				sendFunc: func(to string, body []byte) error {
 					return errors.New("some error")
 				},
 			},

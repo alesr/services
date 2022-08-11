@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	subject string = "%s: account verification"
-	body    string = "Please click the following link to verify your account: %s/%s"
+	vefifyEmailSubject string = "%s: account verification"
+	verifyEmailBody    string = "Please click the following link to verify your account: %s/%s"
 )
 
 var _ Service = (*DefaultService)(nil)
@@ -56,7 +56,7 @@ type (
 	}
 
 	emailer interface {
-		Send(to, subject, body string) error
+		Send(to string, body []byte) error
 	}
 
 	DefaultService struct {
@@ -270,8 +270,6 @@ func (s *DefaultService) VerifyToken(ctx context.Context, token string) (*Verify
 }
 
 func (s *DefaultService) SendEmailVerification(ctx context.Context, userID, to string) error {
-	subject := fmt.Sprintf(subject, s.appName)
-
 	// Generate verification token from user email and secret
 	token, err := bcrypt.GenerateFromPassword(
 		[]byte(to+s.emailVerificationSecret),
@@ -292,9 +290,12 @@ func (s *DefaultService) SendEmailVerification(ctx context.Context, userID, to s
 		return fmt.Errorf("could not insert email verification: %s", err)
 	}
 
-	body := fmt.Sprintf(body, s.emailVerificationEndpoint.String(), token)
+	subject := fmt.Sprintf(vefifyEmailSubject, s.appName)
+	msg := fmt.Sprintf(verifyEmailBody, s.emailVerificationEndpoint.String(), string(token))
 
-	if err := s.emailer.Send(to, subject, body); err != nil {
+	body := []byte(subject + "\r\n" + msg)
+
+	if err := s.emailer.Send(to, body); err != nil {
 		return fmt.Errorf("could not send email: %s", err)
 	}
 	return nil
