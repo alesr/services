@@ -14,17 +14,20 @@ import (
 const (
 	// Enumerate postgresql query strings
 
-	insertQuery string = `INSERT INTO users (id,fullname,username,birthdate,email,password_hash,
-	role,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING 
-	id,fullname,username,birthdate,email,password_hash,role,created_at,updated_at;`
+	insertQuery string = `INSERT INTO users (id,fullname,username,birthdate,email,email_verified,password_hash,
+	role,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING 
+	id,fullname,username,birthdate,email,email_verified,password_hash,role,created_at,updated_at;`
 
-	selectByIDQuery string = `SELECT id,fullname,username,birthdate,email,password_hash,
-	role,created_at,updated_at FROM users WHERE id = $1 AND deleted_at IS NULL;`
+	selectByIDQuery string = `SELECT id,fullname,username,birthdate,email,email_verified,
+	password_hash,role,created_at,updated_at FROM users WHERE id = $1 AND deleted_at IS NULL;`
 
-	selectByEmailQuery string = `SELECT id,fullname,username,birthdate,email,password_hash,
-	role,created_at,updated_at FROM users WHERE email = $1 AND deleted_at IS NULL;`
+	selectByEmailQuery string = `SELECT id,fullname,username,birthdate,email,email_verified,
+	password_hash,role,created_at,updated_at FROM users WHERE email = $1 AND deleted_at IS NULL;`
 
-	deleteByIDQuery string = `UPDATE users SET deleted_at = NOW() WHERE id = $1;`
+	deleteByIDQuery string = "UPDATE users SET deleted_at = NOW() WHERE id = $1;"
+
+	insertEmailVerificationQuery string = `INSERT INTO email_verifications 
+	(token,user_id,created_at,expires_at) VALUES ($1,$2,$3,$4);`
 )
 
 // Postgres represents a user repository instance with the given database connection
@@ -40,11 +43,11 @@ func (p *Postgres) Insert(ctx context.Context, u *User) (*User, error) {
 
 	if err := p.QueryRowContext(
 		ctx, insertQuery, u.ID, u.Fullname, u.Username,
-		u.Birthdate, u.Email, u.PasswordHash,
+		u.Birthdate, u.Email, u.EmailVerified, u.PasswordHash,
 		u.Role, u.CreatedAt, u.UpdatedAt,
 	).Scan(
 		&res.ID, &res.Fullname, &res.Username, &res.Birthdate, &res.Email,
-		&res.PasswordHash, &res.Role, &res.CreatedAt, &res.UpdatedAt,
+		&res.EmailVerified, &res.PasswordHash, &res.Role, &res.CreatedAt, &res.UpdatedAt,
 	); err != nil {
 		var e *pgconn.PgError
 		if errors.As(err, &e) && e.Code == pgerrcode.UniqueViolation {
@@ -76,8 +79,8 @@ func (p *Postgres) SelectByEmail(ctx context.Context, email string) (*User, erro
 func (p *Postgres) selectUser(ctx context.Context, query, arg string) (*User, error) {
 	var u User
 	if err := p.QueryRowContext(ctx, query, arg).Scan(
-		&u.ID, &u.Fullname, &u.Username, &u.Birthdate,
-		&u.Email, &u.PasswordHash, &u.Role, &u.CreatedAt, &u.UpdatedAt,
+		&u.ID, &u.Fullname, &u.Username, &u.Birthdate, &u.Email,
+		&u.EmailVerified, &u.PasswordHash, &u.Role, &u.CreatedAt, &u.UpdatedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -100,6 +103,14 @@ func (p *Postgres) DeleteByID(ctx context.Context, id string) error {
 
 	if rowsAffected == 0 {
 		return ErrRecordNotFound
+	}
+	return nil
+}
+
+func (p *Postgres) InsertEmailVerification(ctx context.Context, in EmailVerification) error {
+	_, err := p.ExecContext(ctx, insertEmailVerificationQuery, in.Token, in.UserID, in.CreatedAt, in.ExpiresAt)
+	if err != nil {
+		return fmt.Errorf("could not insert email verification: %s", err)
 	}
 	return nil
 }

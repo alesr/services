@@ -8,11 +8,12 @@ import (
 var _ Service = (*MockService)(nil)
 
 type MockService struct {
-	CreateFunc        func(ctx context.Context, in CreateUserInput) (*User, error)
-	DeleteFunc        func(ctx context.Context, id string) error
-	FetchByIDFunc     func(ctx context.Context, id string) (*User, error)
-	GenerateTokenFunc func(ctx context.Context, email, password string) (string, error)
-	VerifyTokenFunc   func(ctx context.Context, token string) (*VerifyTokenResponse, error)
+	CreateFunc                func(ctx context.Context, in CreateUserInput) (*User, error)
+	DeleteFunc                func(ctx context.Context, id string) error
+	FetchByIDFunc             func(ctx context.Context, id string) (*User, error)
+	GenerateTokenFunc         func(ctx context.Context, email, password string) (string, error)
+	VerifyTokenFunc           func(ctx context.Context, token string) (*VerifyTokenResponse, error)
+	SendEmailVerificationFunc func(ctx context.Context, userID, to string) error
 }
 
 func (m *MockService) Create(ctx context.Context, in CreateUserInput) (*User, error) {
@@ -48,4 +49,11 @@ func (m *MockService) VerifyToken(ctx context.Context, token string) (*VerifyTok
 		return nil, errors.New("MockService.VerifyTokenFunc is nil")
 	}
 	return m.VerifyTokenFunc(ctx, token)
+}
+
+func (m *MockService) SendEmailVerification(ctx context.Context, userID, to string) error {
+	if m.SendEmailVerificationFunc == nil {
+		return errors.New("MockService.SendEmailVerificationFunc is nil")
+	}
+	return m.SendEmailVerificationFunc(ctx, userID, to)
 }

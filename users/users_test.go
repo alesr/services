@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"testing"
 	"time"
 
@@ -11,19 +12,41 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func TestNew(t *testing.T) {
 	t.Parallel()
 
+	givenLogger := zap.NewNop()
+	givenAppName := "test-app"
 	givenJWTSigningKey := "secret"
+	givenEmailVerificationSecret := "secret"
+
+	givenEmailVerificationEndpoint, err := url.Parse("http://localhost:8080/verify-email")
+	require.NoError(t, err)
+
+	givenEmailer := &emailerMock{}
 	givenRepo := &repositoryMock{}
 
-	actual := New(givenJWTSigningKey, givenRepo)
+	actual := New(
+		givenLogger,
+		givenAppName,
+		givenJWTSigningKey,
+		givenEmailVerificationSecret,
+		*givenEmailVerificationEndpoint,
+		givenEmailer,
+		givenRepo,
+	)
 
 	require.NotNil(t, actual)
+	require.Equal(t, givenLogger, actual.logger)
+	assert.Equal(t, givenAppName, actual.appName)
 	assert.Equal(t, givenJWTSigningKey, actual.jwtSigningKey)
+	assert.Equal(t, givenEmailVerificationSecret, actual.emailVerificationSecret)
+	assert.Equal(t, givenEmailVerificationEndpoint.String(), actual.emailVerificationEndpoint.String())
+	assert.Equal(t, givenEmailer, actual.emailer)
 	assert.Equal(t, givenRepo, actual.repo)
 }
 
@@ -57,11 +80,12 @@ func TestCreate(t *testing.T) {
 	givenUserWithAdminRole.Role = RoleAdmin
 
 	testCases := []struct {
-		name          string
-		givenUser     CreateUserInput
-		givenRepoMock *repositoryMock
-		expectedUser  *User
-		expectedError error
+		name             string
+		givenUser        CreateUserInput
+		givenEmailerMock *emailerMock
+		givenRepoMock    *repositoryMock
+		expectedUser     *User
+		expectedError    error
 	}{
 		{
 			name:      "user aleready exists",
@@ -77,7 +101,19 @@ func TestCreate(t *testing.T) {
 		{
 			name:      "user is created",
 			givenUser: givenUser,
+			givenEmailerMock: &emailerMock{
+				sendFunc: func(to, subject, body string) error {
+					return nil
+				},
+			},
 			givenRepoMock: &repositoryMock{
+				insertEmailVerificationFunc: func(ctx context.Context, in repository.EmailVerification) error {
+					assert.NotEmpty(t, in.UserID)
+					assert.NotEmpty(t, in.Token)
+					assert.NotEmpty(t, in.CreatedAt)
+					assert.NotEmpty(t, in.ExpiresAt)
+					return nil
+				},
 				insertFunc: func(ctx context.Context, user *repository.User) (*repository.User, error) {
 					assert.NotEmpty(t, user.ID)
 					assert.NotEmpty(t, user.PasswordHash)
@@ -98,14 +134,15 @@ func TestCreate(t *testing.T) {
 				},
 			},
 			expectedUser: &User{
-				ID:        "123",
-				Fullname:  givenUser.Fullname,
-				Username:  givenUser.Username,
-				Birthdate: givenUser.Birthdate,
-				Email:     givenUser.Email,
-				Role:      RoleUser,
-				CreatedAt: time.Time{}.AddDate(2000, 1, 1),
-				UpdatedAt: time.Time{}.AddDate(2000, 2, 2),
+				ID:            "123",
+				Fullname:      givenUser.Fullname,
+				Username:      givenUser.Username,
+				Birthdate:     givenUser.Birthdate,
+				Email:         givenUser.Email,
+				EmailVerified: false,
+				Role:          RoleUser,
+				CreatedAt:     time.Time{}.AddDate(2000, 1, 1),
+				UpdatedAt:     time.Time{}.AddDate(2000, 2, 2),
 			},
 			expectedError: nil,
 		},
@@ -127,12 +164,62 @@ func TestCreate(t *testing.T) {
 			expectedUser:  nil,
 			expectedError: errCannotCreateAdminUser,
 		},
+		{
+			name:      "send email verification error still creates an user",
+			givenUser: givenUser,
+			givenEmailerMock: &emailerMock{
+				sendFunc: func(to, subject, body string) error {
+					return errors.New("some error")
+				},
+			},
+			givenRepoMock: &repositoryMock{
+				insertEmailVerificationFunc: func(ctx context.Context, in repository.EmailVerification) error {
+					assert.NotEmpty(t, in.UserID)
+					assert.NotEmpty(t, in.Token)
+					assert.NotEmpty(t, in.CreatedAt)
+					assert.NotEmpty(t, in.ExpiresAt)
+					return nil
+				},
+				insertFunc: func(ctx context.Context, user *repository.User) (*repository.User, error) {
+					assert.NotEmpty(t, user.ID)
+					assert.NotEmpty(t, user.PasswordHash)
+					assert.NotEmpty(t, user.CreatedAt)
+					assert.NotEmpty(t, user.UpdatedAt)
+
+					return &repository.User{
+						ID:           "123",
+						Fullname:     givenUser.Fullname,
+						Username:     givenUser.Username,
+						Birthdate:    givenUser.Birthdate,
+						Email:        givenUser.Email,
+						PasswordHash: givenUser.Password,
+						Role:         string(RoleUser),
+						CreatedAt:    time.Time{}.AddDate(2000, 1, 1),
+						UpdatedAt:    time.Time{}.AddDate(2000, 2, 2),
+					}, nil
+				},
+			},
+			expectedUser: &User{
+				ID:            "123",
+				Fullname:      givenUser.Fullname,
+				Username:      givenUser.Username,
+				Birthdate:     givenUser.Birthdate,
+				Email:         givenUser.Email,
+				EmailVerified: false,
+				Role:          RoleUser,
+				CreatedAt:     time.Time{}.AddDate(2000, 1, 1),
+				UpdatedAt:     time.Time{}.AddDate(2000, 2, 2),
+			},
+			expectedError: nil,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			svc := DefaultService{
-				repo: tc.givenRepoMock,
+				logger:  zap.NewNop(),
+				emailer: tc.givenEmailerMock,
+				repo:    tc.givenRepoMock,
 			}
 
 			user, err := svc.Create(context.Background(), tc.givenUser)
@@ -423,31 +510,67 @@ func TestGenerateToken(t *testing.T) {
 func TestNewUserFromRepository(t *testing.T) {
 	t.Parallel()
 
-	given := repository.User{
-		ID:           "123",
-		Fullname:     "John Doe",
-		Username:     "jdoe",
-		Birthdate:    "2000-01-01",
-		Email:        "jdoe@mail.com",
-		PasswordHash: "password",
-		Role:         "admin",
-		CreatedAt:    time.Time{}.AddDate(2000, 1, 1),
-		UpdatedAt:    time.Time{}.AddDate(2000, 2, 2),
+	givenUser := repository.User{
+		ID:            "123",
+		Fullname:      "John Doe",
+		Username:      "jdoe",
+		Birthdate:     "2000-01-01",
+		Email:         "jdoe@mail.com",
+		EmailVerified: true,
+		PasswordHash:  "password",
+		CreatedAt:     time.Time{}.AddDate(2000, 1, 1),
+		UpdatedAt:     time.Time{}.AddDate(2000, 2, 2),
 	}
 
-	expected := User{
-		ID:        "123",
-		Fullname:  "John Doe",
-		Username:  "jdoe",
-		Birthdate: "2000-01-01",
-		Email:     "jdoe@mail.com",
-		Role:      RoleAdmin,
-		CreatedAt: time.Time{}.AddDate(2000, 1, 1),
-		UpdatedAt: time.Time{}.AddDate(2000, 2, 2),
-	}
+	t.Run("valid role admin", func(t *testing.T) {
+		given := givenUser
+		given.Role = string(RoleAdmin)
 
-	actual, err := newUserFromRepository(&given)
-	require.NoError(t, err)
+		expected := User{
+			ID:            "123",
+			Fullname:      "John Doe",
+			Username:      "jdoe",
+			Birthdate:     "2000-01-01",
+			Email:         "jdoe@mail.com",
+			EmailVerified: true,
+			Role:          RoleAdmin,
+			CreatedAt:     time.Time{}.AddDate(2000, 1, 1),
+			UpdatedAt:     time.Time{}.AddDate(2000, 2, 2),
+		}
 
-	assert.Equal(t, expected, *actual)
+		actual, err := newUserFromRepository(&given)
+		require.NoError(t, err)
+
+		assert.Equal(t, expected, *actual)
+	})
+
+	t.Run("valid role user", func(t *testing.T) {
+		given := givenUser
+		given.Role = string(RoleUser)
+
+		expected := User{
+			ID:            "123",
+			Fullname:      "John Doe",
+			Username:      "jdoe",
+			Birthdate:     "2000-01-01",
+			Email:         "jdoe@mail.com",
+			EmailVerified: true,
+			Role:          RoleUser,
+			CreatedAt:     time.Time{}.AddDate(2000, 1, 1),
+			UpdatedAt:     time.Time{}.AddDate(2000, 2, 2),
+		}
+
+		actual, err := newUserFromRepository(&given)
+		require.NoError(t, err)
+
+		assert.Equal(t, expected, *actual)
+	})
+
+	t.Run("invalid role", func(t *testing.T) {
+		given := givenUser
+		given.Role = "invalid"
+
+		_, err := newUserFromRepository(&given)
+		assert.Error(t, err)
+	})
 }
