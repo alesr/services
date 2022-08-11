@@ -13,6 +13,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+const dbConnStr string = "postgres://user:password@localhost:5432/testdb?sslmode=disable"
+
 func TestIntegrationInsert(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -25,15 +27,16 @@ func TestIntegrationInsert(t *testing.T) {
 		repo := NewPostgres(dbConn)
 
 		user := &User{
-			ID:           uuid.New().String(),
-			Fullname:     "John Doe",
-			Username:     "jdoe",
-			Birthdate:    "2000-01-01",
-			Email:        "joedoe@mail.com",
-			PasswordHash: "123456",
-			Role:         "user",
-			CreatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-			UpdatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			ID:            uuid.New().String(),
+			Fullname:      "John Doe",
+			Username:      "jdoe",
+			Birthdate:     "2000-01-01",
+			Email:         "joedoe@mail.com",
+			EmailVerified: false,
+			PasswordHash:  "123456",
+			Role:          "user",
+			CreatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			UpdatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 		}
 
 		actual, err := repo.Insert(context.TODO(), user)
@@ -49,15 +52,16 @@ func TestIntegrationInsert(t *testing.T) {
 		repo := NewPostgres(dbConn)
 
 		user := &User{
-			ID:           uuid.New().String(),
-			Fullname:     "John Doe",
-			Username:     "jdoe",
-			Birthdate:    "2000-01-01",
-			Email:        "joedoe@mail.com",
-			PasswordHash: "123456",
-			Role:         "user",
-			CreatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-			UpdatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			ID:            uuid.New().String(),
+			Fullname:      "John Doe",
+			Username:      "jdoe",
+			Birthdate:     "2000-01-01",
+			Email:         "joedoe@mail.com",
+			EmailVerified: false,
+			PasswordHash:  "123456",
+			Role:          "user",
+			CreatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+			UpdatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 		}
 
 		_, err := repo.Insert(context.TODO(), user)
@@ -79,15 +83,16 @@ func TestIntegrationSelectByID(t *testing.T) {
 	repo := NewPostgres(dbConn)
 
 	user := &User{
-		ID:           uuid.New().String(),
-		Fullname:     "John Doe",
-		Username:     "jdoe",
-		Birthdate:    "2000-01-01",
-		Email:        "joedoe@mail.com",
-		PasswordHash: "123456",
-		Role:         "user",
-		CreatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-		UpdatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		ID:            uuid.New().String(),
+		Fullname:      "John Doe",
+		Username:      "jdoe",
+		Birthdate:     "2000-01-01",
+		Email:         "joedoe@mail.com",
+		EmailVerified: false,
+		PasswordHash:  "123456",
+		Role:          "user",
+		CreatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		UpdatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 
 	_, err := repo.Insert(context.TODO(), user)
@@ -129,15 +134,16 @@ func TestIntegrationSelectByEmail(t *testing.T) {
 	repo := NewPostgres(dbConn)
 
 	user := &User{
-		ID:           uuid.New().String(),
-		Fullname:     "John Doe",
-		Username:     "jdoe",
-		Birthdate:    "2000-01-01",
-		Email:        "joedoe@mail.com",
-		PasswordHash: "123456",
-		Role:         "user",
-		CreatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-		UpdatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		ID:            uuid.New().String(),
+		Fullname:      "John Doe",
+		Username:      "jdoe",
+		Birthdate:     "2000-01-01",
+		Email:         "joedoe@mail.com",
+		EmailVerified: false,
+		PasswordHash:  "123456",
+		Role:          "user",
+		CreatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		UpdatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 
 	_, err := repo.Insert(context.TODO(), user)
@@ -179,15 +185,16 @@ func TestIntegrationDeleteByID(t *testing.T) {
 	repo := NewPostgres(dbConn)
 
 	user := &User{
-		ID:           uuid.New().String(),
-		Fullname:     "John Doe",
-		Username:     "jdoe",
-		Birthdate:    "2000-01-01",
-		Email:        "joedoe@mail.com",
-		PasswordHash: "123456",
-		Role:         "user",
-		CreatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-		UpdatedAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		ID:            uuid.New().String(),
+		Fullname:      "John Doe",
+		Username:      "jdoe",
+		Birthdate:     "2000-01-01",
+		Email:         "joedoe@mail.com",
+		EmailVerified: false,
+		PasswordHash:  "123456",
+		Role:          "user",
+		CreatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		UpdatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 
 	_, err := repo.Insert(context.TODO(), user)
@@ -209,8 +216,46 @@ func TestIntegrationDeleteByID(t *testing.T) {
 	})
 }
 
+func TestIntegrationInsertEmailVerification(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
+	dbConn := setupDB(t)
+	defer teardownDB(t, dbConn)
+
+	repo := NewPostgres(dbConn)
+
+	userID := uuid.New().String()
+	user := &User{
+		ID:            userID,
+		Fullname:      "John Doe",
+		Username:      "jdoe",
+		Birthdate:     "2000-01-01",
+		Email:         "joedoe@mail.com",
+		EmailVerified: false,
+		PasswordHash:  "123456",
+		Role:          "user",
+		CreatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+		UpdatedAt:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+	}
+
+	_, err := repo.Insert(context.TODO(), user)
+	require.NoError(t, err)
+
+	emailVerification := EmailVerification{
+		Token:     "123456",
+		UserID:    userID,
+		CreatedAt: time.Time{},
+		ExpiresAt: time.Time{},
+	}
+
+	err = repo.InsertEmailVerification(context.TODO(), emailVerification)
+	require.NoError(t, err)
+}
+
 func setupDB(t *testing.T) *sqlx.DB {
-	dbConn, err := sqlx.Connect("pgx", "postgres://user:password@localhost:5432/testdb?sslmode=disable")
+	dbConn, err := sqlx.Connect("pgx", dbConnStr)
 	require.NoError(t, err)
 
 	for i := 0; i < 10; i++ {
@@ -227,6 +272,9 @@ func setupDB(t *testing.T) *sqlx.DB {
 
 func teardownDB(t *testing.T, dbConn *sqlx.DB) {
 	_, err := dbConn.Exec("TRUNCATE TABLE users CASCADE")
+	require.NoError(t, err)
+
+	_, err = dbConn.Exec("TRUNCATE TABLE email_verifications CASCADE")
 	require.NoError(t, err)
 
 	require.NoError(t, dbConn.Close())

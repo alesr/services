@@ -10,10 +10,11 @@ import (
 var _ repo = (*repositoryMock)(nil)
 
 type repositoryMock struct {
-	insertFunc        func(ctx context.Context, user *repository.User) (*repository.User, error)
-	selectByIDFunc    func(ctx context.Context, id string) (*repository.User, error)
-	selectByEmailFunc func(ctx context.Context, email string) (*repository.User, error)
-	deleteByIDFunc    func(ctx context.Context, id string) error
+	insertFunc                  func(ctx context.Context, user *repository.User) (*repository.User, error)
+	selectByIDFunc              func(ctx context.Context, id string) (*repository.User, error)
+	selectByEmailFunc           func(ctx context.Context, email string) (*repository.User, error)
+	deleteByIDFunc              func(ctx context.Context, id string) error
+	insertEmailVerificationFunc func(ctx context.Context, in repository.EmailVerification) error
 }
 
 func (m *repositoryMock) Insert(ctx context.Context, user *repository.User) (*repository.User, error) {
@@ -42,4 +43,11 @@ func (m *repositoryMock) DeleteByID(ctx context.Context, id string) error {
 		return errors.New("repositoryMock.deleteByIDfunc is nil")
 	}
 	return m.deleteByIDFunc(ctx, id)
+}
+
+func (m *repositoryMock) InsertEmailVerification(ctx context.Context, in repository.EmailVerification) error {
+	if m.insertEmailVerificationFunc == nil {
+		return errors.New("repositoryMock.insertEmailVerificationFunc is nil")
+	}
+	return m.insertEmailVerificationFunc(ctx, in)
 }
