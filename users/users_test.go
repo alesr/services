@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alesr/stdservices/internal/users/repository"
+	"github.com/alesr/stdservices/users/repository"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

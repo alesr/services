@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/alesr/stdservices/internal/users/repository"
 	"github.com/alesr/stdservices/pkg/validate"
+	"github.com/alesr/stdservices/users/repository"
 	"go.uber.org/zap"
 
 	jwt "github.com/dgrijalva/jwt-go"
