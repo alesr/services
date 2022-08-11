@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(255) NOT NULL UNIQUE,
     birthdate VARCHAR(10) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     password_hash VARCHAR(255) NOT NULL,
     role role NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
