@@ -14,13 +14,13 @@ If you decide to use these services, you should use the database migrations as a
 stdservices
 ------------------------------------------------------------------------
 db-down                        remove the test database container and its volumes
-db                             spins up the test database
+db                             spin up the test database
 lint                           run go format, vet and lint code
-migrate                        executes the migrations towards the test database
+migrate                        execute the migrations towards the test database
 psql                           executes a psql command to connect to the test database
 test-it                        run integration tests
 test-unit                      run unit tests
-test                           Run unit and integration tests
+test                           Run linter, unit and integration tests
 ```
 
 ## Testing
@@ -39,6 +39,8 @@ Finally, you can use the service mocks to unit test your application.
 
 ---
 ## users
+
+`import "github.com/alesr/stdservices/users"`
 
 The user service implements a set of CRUD operations for users. It is used in conjunction with JWT authentication and includes
 a repository layer for storing users in a database. A PostgreSQL implementation is provided for convenience.
