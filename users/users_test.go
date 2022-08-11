@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"testing"
 	"time"
 
@@ -20,32 +19,34 @@ func TestNew(t *testing.T) {
 	t.Parallel()
 
 	givenLogger := zap.NewNop()
-	givenAppName := "test-app"
-	givenJWTSigningKey := "secret"
-	givenEmailVerificationSecret := "secret"
 
-	givenEmailVerificationEndpoint, err := url.Parse("http://localhost:8080/verify-email")
-	require.NoError(t, err)
+	givenJWTSigningKey := "jtw-secret"
+
+	givenEmailVerificationSenderName := "test-app"
+	givenEmailVerificationSenderAddr := "test-app@foo.bar"
+	givenEmailVerificationEndpoint := "http://test-app:8080/verify-email"
 
 	givenEmailer := &emailerMock{}
 	givenRepo := &repositoryMock{}
 
 	actual := New(
 		givenLogger,
-		givenAppName,
 		givenJWTSigningKey,
-		givenEmailVerificationSecret,
-		*givenEmailVerificationEndpoint,
-		givenEmailer,
 		givenRepo,
+		WithEmailVerification(
+			givenEmailVerificationSenderName,
+			givenEmailVerificationSenderAddr,
+			givenEmailVerificationEndpoint,
+			givenEmailer,
+		),
 	)
 
 	require.NotNil(t, actual)
 	require.Equal(t, givenLogger, actual.logger)
-	assert.Equal(t, givenAppName, actual.appName)
 	assert.Equal(t, givenJWTSigningKey, actual.jwtSigningKey)
-	assert.Equal(t, givenEmailVerificationSecret, actual.emailVerificationSecret)
-	assert.Equal(t, givenEmailVerificationEndpoint.String(), actual.emailVerificationEndpoint.String())
+	assert.Equal(t, givenEmailVerificationSenderName, actual.emailVerificationSenderName)
+	assert.Equal(t, givenEmailVerificationSenderAddr, actual.emailVerificationSenderAddr)
+	assert.Equal(t, givenEmailVerificationEndpoint, actual.emailVerificationEndpoint)
 	assert.Equal(t, givenEmailer, actual.emailer)
 	assert.Equal(t, givenRepo, actual.repo)
 }
@@ -73,11 +74,7 @@ func TestCreate(t *testing.T) {
 		Email:           "joedoe@mail.com",
 		Password:        "password#123",
 		ConfirmPassword: "password#123",
-		Role:            string(RoleUser),
 	}
-
-	givenUserWithAdminRole := givenUser
-	givenUserWithAdminRole.Role = string(RoleAdmin)
 
 	testCases := []struct {
 		name             string
@@ -102,14 +99,14 @@ func TestCreate(t *testing.T) {
 			name:      "user is created",
 			givenUser: givenUser,
 			givenEmailerMock: &emailerMock{
-				sendFunc: func(to string, body []byte) error {
+				sendFunc: func(from, to string, body []byte) error {
 					return nil
 				},
 			},
 			givenRepoMock: &repositoryMock{
 				insertEmailVerificationFunc: func(ctx context.Context, in repository.EmailVerification) error {
 					assert.NotEmpty(t, in.UserID)
-					assert.NotEmpty(t, in.Token)
+					assert.NotEmpty(t, in.Code)
 					assert.NotEmpty(t, in.CreatedAt)
 					assert.NotEmpty(t, in.ExpiresAt)
 					return nil
@@ -158,24 +155,17 @@ func TestCreate(t *testing.T) {
 			expectedError: fmt.Errorf("could not insert user: some error"),
 		},
 		{
-			name:          "cannot create user with admin role",
-			givenUser:     givenUserWithAdminRole,
-			givenRepoMock: &repositoryMock{},
-			expectedUser:  nil,
-			expectedError: errCannotCreateAdminUser,
-		},
-		{
 			name:      "send email verification error still creates an user",
 			givenUser: givenUser,
 			givenEmailerMock: &emailerMock{
-				sendFunc: func(to string, body []byte) error {
+				sendFunc: func(from, to string, body []byte) error {
 					return errors.New("some error")
 				},
 			},
 			givenRepoMock: &repositoryMock{
 				insertEmailVerificationFunc: func(ctx context.Context, in repository.EmailVerification) error {
 					assert.NotEmpty(t, in.UserID)
-					assert.NotEmpty(t, in.Token)
+					assert.NotEmpty(t, in.Code)
 					assert.NotEmpty(t, in.CreatedAt)
 					assert.NotEmpty(t, in.ExpiresAt)
 					return nil
@@ -573,4 +563,29 @@ func TestNewUserFromRepository(t *testing.T) {
 		_, err := newUserFromRepository(&given)
 		assert.Error(t, err)
 	})
+}
+
+func TestRandString(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		givenLength int
+	}{
+		{
+			name:        "zero length",
+			givenLength: 0,
+		},
+		{
+			name:        "non length",
+			givenLength: 10,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := randString(tc.givenLength)
+			assert.Equal(t, tc.givenLength, len(actual))
+		})
+	}
 }
